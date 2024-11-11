@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_delete_local"
+        android:title="Alle lokalen Todos löschen"
+        android:orderInCategory="100"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_delete_remote"
+        android:title="Alle entfernten Todos löschen"
+        android:orderInCategory="200"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_synchronize"
+        android:title="Synchronisieren"
+        android:orderInCategory="300"
+        app:showAsAction="never" />
+</menu>
