@@ -1,1 +1,0 @@
-# com.cs.mad.project
