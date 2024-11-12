@@ -16,7 +16,8 @@ public class DatabaseClient {
         this.context = context;
 
         // Erstelle die Room-Datenbank
-        appDatabase = Room.databaseBuilder(context, AppDatabase.class, "TodoDB").build();
+        appDatabase = Room.databaseBuilder(context, AppDatabase.class, "TodoDB")
+                        .fallbackToDestructiveMigration().build();
     }
 
     public static synchronized DatabaseClient getInstance(Context context) {

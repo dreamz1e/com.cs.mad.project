@@ -2,10 +2,6 @@ package org.dieschnittstelle.mobile.android.skeleton.model;
 
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
-import androidx.room.TypeConverters;
-
-import java.time.LocalDate;
-import java.time.LocalTime;
 
 @Entity
 public class Todo {
@@ -15,14 +11,10 @@ public class Todo {
 
     private String name;
     private String description;
-    private boolean completed;
+    private boolean done;
     private boolean favourite;
 
-    @TypeConverters({Converters.class})
-    private LocalDate dueDate;
-
-    @TypeConverters({Converters.class})
-    private LocalTime dueTime;
+    private long expiry;
 
     // Standardkonstruktor
     public Todo() {
@@ -59,12 +51,12 @@ public class Todo {
     }
 
     // Erledigt
-    public boolean isCompleted() {
-        return completed;
+    public boolean isDone() {
+        return done;
     }
 
-    public void setCompleted(boolean completed) {
-        this.completed = completed;
+    public void setDone(boolean done) {
+        this.done = done;
     }
 
     // Favorit
@@ -76,21 +68,12 @@ public class Todo {
         this.favourite = favourite;
     }
 
-    // Fälligkeitsdatum
-    public LocalDate getDueDate() {
-        return dueDate;
+    public long getExpiry() {
+        return expiry;
     }
 
-    public void setDueDate(LocalDate dueDate) {
-        this.dueDate = dueDate;
+    public void setExpiry(long expiry) {
+        this.expiry = expiry;
     }
 
-    // Fälligkeitsuhrzeit
-    public LocalTime getDueTime() {
-        return dueTime;
-    }
-
-    public void setDueTime(LocalTime dueTime) {
-        this.dueTime = dueTime;
-    }
 }

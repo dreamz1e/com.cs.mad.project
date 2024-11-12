@@ -39,11 +39,11 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.ViewHolder> {
         Todo todo = todoList.get(position);
         holder.textViewName.setText(todo.getName());
         holder.textViewDescription.setText(todo.getDescription());
-        holder.toggleCompleted.setChecked(todo.isCompleted());
+        holder.toggleCompleted.setChecked(todo.isDone());
 
         // Toggle-Button Listener
         holder.toggleCompleted.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            todo.setCompleted(isChecked);
+            todo.setDone(isChecked);
             // Lokale Daten aktualisieren
             todoRepository.updateTodo(todo);
         });
