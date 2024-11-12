@@ -1,6 +1,7 @@
 package org.dieschnittstelle.mobile.android.skeleton.remote;
 
 import org.dieschnittstelle.mobile.android.skeleton.model.Todo;
+import org.dieschnittstelle.mobile.android.skeleton.model.User;
 
 import java.util.List;
 
@@ -30,9 +31,9 @@ public interface ITodoAPIService {
     @PUT("/api/todos/reset")
     Call<Boolean> reset();
 
-    //@PUT("/api/users/auth")
-    //Call<Boolean> authenticateUser(@Body User user);
+    @PUT("/api/users/auth")
+    Call<Boolean> authenticateUser(@Body User user);
 
-    //@PUT("/api/users/prepare")
-    //Call<Boolean> prepare(@Body User user);
+    @PUT("/api/users/prepare")
+    Call<Boolean> prepare(@Body User user);
 }
