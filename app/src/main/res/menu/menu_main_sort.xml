@@ -1,0 +1,13 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/action_sort_date_importance"
+        android:title="Sortieren nach Datum + Wichtigkeit"
+        android:checkable="true"
+        android:checked="false"/>
+
+    <item
+        android:id="@+id/action_sort_importance_date"
+        android:title="Sortieren nach Wichtigkeit + Datum"
+        android:checkable="true"
+        android:checked="false"/>
+</menu>

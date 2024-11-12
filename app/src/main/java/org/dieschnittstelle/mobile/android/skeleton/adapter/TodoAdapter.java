@@ -1,8 +1,12 @@
 package org.dieschnittstelle.mobile.android.skeleton.adapter;
 
+import android.content.Context;
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import android.widget.CheckBox;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
@@ -13,57 +17,108 @@ import org.dieschnittstelle.mobile.android.skeleton.R;
 import org.dieschnittstelle.mobile.android.skeleton.model.Todo;
 import org.dieschnittstelle.mobile.android.skeleton.repository.TodoRepository;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 
-public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.ViewHolder> {
-    private List<Todo> todoList;
+public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder> {
 
+    private List<Todo> todos = new ArrayList<>();
+    private Context context;
     private TodoRepository todoRepository;
+    private OnItemClickListener listener;
 
+    public interface OnItemClickListener {
+        void onItemClick(Todo todo);
+        void onFavoriteToggle(Todo todo, boolean isFavorite);
+        void onCompletedToggle(Todo todo, boolean isCompleted);
+    }
 
-    public TodoAdapter(List<Todo> todos, TodoRepository todoRepository) {
-        this.todoList = todos;
+    public TodoAdapter(Context context, TodoRepository todoRepository, OnItemClickListener listener) {
+        this.context = context;
         this.todoRepository = todoRepository;
+        this.listener = listener;
+    }
+
+    public void setTodos(List<Todo> todos) {
+        this.todos = todos;
+        notifyDataSetChanged();
     }
 
     @NonNull
     @Override
-    public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View todoView = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_todo, parent, false);
-        return new ViewHolder(todoView);
+    public TodoViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        View view = LayoutInflater.from(context).inflate(R.layout.item_todo, parent, false);
+        return new TodoViewHolder(view);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
-        Todo todo = todoList.get(position);
-        holder.textViewName.setText(todo.getName());
-        holder.textViewDescription.setText(todo.getDescription());
-        holder.toggleCompleted.setChecked(todo.isDone());
+    public void onBindViewHolder(@NonNull TodoViewHolder holder, int position) {
+        Todo todo = todos.get(position);
 
-        // Toggle-Button Listener
-        holder.toggleCompleted.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            todo.setDone(isChecked);
-            // Lokale Daten aktualisieren
-            todoRepository.updateTodo(todo);
+        holder.textViewName.setText(todo.getName());
+        holder.textViewDueDate.setText(todo.getExpiry() != 0 ? todo.getExpiry() + "" : "Kein Fälligkeitsdatum");
+        holder.checkBoxCompleted.setChecked(todo.isDone());
+        holder.toggleButtonFavorite.setChecked(todo.isFavourite());
+
+        Instant expiryInstant = Instant.ofEpochMilli(todo.getExpiry());
+        // Visuelle Hervorhebung überfälliger Todos
+        if (!todo.isDone() && todo.getExpiry() != 0 && expiryInstant.isBefore(Instant.now())) {
+            // Ändere die Textfarbe für überfällige Todos
+            holder.textViewName.setTextColor(Color.RED);
+            holder.textViewDueDate.setTextColor(Color.RED);
+        } else {
+            // Standardfarbe
+            holder.textViewName.setTextColor(Color.BLACK);
+            holder.textViewDueDate.setTextColor(Color.DKGRAY);
+        }
+
+        // KlickListener für die Detailansicht
+        holder.itemView.setOnClickListener(v -> {
+            if (listener != null) {
+                listener.onItemClick(todo);
+            }
+        });
+
+        // Favourite-Toggle
+        holder.toggleButtonFavorite.setOnClickListener(v -> {
+            boolean isFavorite = holder.toggleButtonFavorite.isChecked();
+            todo.setFavourite(isFavorite);
+            if (listener != null) {
+                listener.onFavoriteToggle(todo, isFavorite);
+            }
+        });
+
+        // Completed-Toggle
+        holder.checkBoxCompleted.setOnClickListener(v -> {
+            boolean isCompleted = holder.checkBoxCompleted.isChecked();
+            todo.setDone(isCompleted);
+            if (listener != null) {
+                listener.onCompletedToggle(todo, isCompleted);
+            }
         });
     }
 
     @Override
     public int getItemCount() {
-        return todoList.size();
+        return todos.size();
     }
 
-    public static class ViewHolder extends RecyclerView.ViewHolder {
-        public TextView textViewName;
-        public TextView textViewDescription;
-        public ToggleButton toggleCompleted;
+    public class TodoViewHolder extends RecyclerView.ViewHolder {
 
-        public ViewHolder(View itemView) {
+        TextView textViewName, textViewDueDate;
+        ToggleButton toggleButtonFavorite;
+        CheckBox checkBoxCompleted;
+
+        public TodoViewHolder(@NonNull View itemView) {
             super(itemView);
-            textViewName = itemView.findViewById(R.id.textViewTodoName);
-            textViewDescription = itemView.findViewById(R.id.textViewTodoDescription);
-            toggleCompleted = itemView.findViewById(R.id.toggleButtonCompleted);
+
+            textViewName = itemView.findViewById(R.id.textViewName);
+            textViewDueDate = itemView.findViewById(R.id.textViewDueDate);
+            toggleButtonFavorite = itemView.findViewById(R.id.toggleButtonFavorite);
+            checkBoxCompleted = itemView.findViewById(R.id.checkBoxCompleted);
         }
     }
+
 }

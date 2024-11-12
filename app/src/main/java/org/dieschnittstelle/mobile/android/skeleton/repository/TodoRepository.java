@@ -55,6 +55,7 @@ public class TodoRepository {
             }
         }.execute();
     }
+
     public void updateTodo(final Todo todo) {
         new MADAsyncTask<Void, Void, Void>() {
             @Override
@@ -82,6 +83,35 @@ public class TodoRepository {
                 return null;
             }
         }.execute();
+    }
+    // Methode zum Abrufen eines Todos nach ID
+    public Todo getTodoById(int id) {
+        return todoCRUDOperation.getTodoById(id);
+    }
+
+    // Methode zum Einfügen eines neuen Todos
+    public void insertTodo(final Todo todo) {
+        // In lokale Datenbank einfügen
+        todoCRUDOperation.insertTodo(todo);
+
+        // Nach erfolgreichem Einfügen in die lokale Datenbank, Todo an die Webanwendung senden
+        apiService.createTodo(todo).enqueue(new Callback<Todo>() {
+            @Override
+            public void onResponse(Call<Todo> call, Response<Todo> response) {
+                if (response.isSuccessful()) {
+                    // Erfolgreich in der Webanwendung erstellt
+                    Log.d(TAG, "Todo wurde in der Webanwendung erstellt");
+                } else {
+                    // Fehler bei der Erstellung
+                    Log.e(TAG, "Fehler beim Erstellen des Todos in der Webanwendung: " + response.message());
+                }
+            }
+
+            @Override
+            public void onFailure(Call<Todo> call, Throwable t) {
+                Log.e(TAG, "Netzwerkfehler beim Erstellen des Todos in der Webanwendung", t);
+            }
+        });
     }
 
     private void fetchTodosFromWeb() {
