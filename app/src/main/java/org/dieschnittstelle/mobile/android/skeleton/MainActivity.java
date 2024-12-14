@@ -41,32 +41,28 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
-
+    
+        // Setze Standardsortiermodus, falls nicht gespeichert
         if (savedInstanceState != null) {
             currentSortMode = savedInstanceState.getInt("currentSortMode", SORT_BY_DATE_IMPORTANCE);
         }
-
-        // Initialisiere das TodoRepository
+    
+        // Initialisiere Repository und RecyclerView
         todoRepository = new TodoRepository(getApplicationContext());
-
-        // Initialisiere RecyclerView und Adapter
         recyclerView = findViewById(R.id.recyclerViewTodos);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
-        todoAdapter = new TodoAdapter(this, this.todoRepository ,this);
+        todoAdapter = new TodoAdapter(this, todoRepository, this);
         recyclerView.setAdapter(todoAdapter);
-
-        // Lade Todos aus der lokalen Datenbank
-        loadTodosFromLocalDatabase();
-
-        // Setup des FloatingActionButtons zum Hinzufügen neuer Todos
+    
+        // Lade initial sortierte Todos
+        updateTodoList();
+    
+        // FAB Setup
         FloatingActionButton fabAddTodo = findViewById(R.id.fabAddTodo);
         fabAddTodo.setOnClickListener(v -> {
-            // Starte die Aktivität zum Hinzufügen eines neuen Todos
             Intent intent = new Intent(MainActivity.this, TodoDetailActivity.class);
             startActivityForResult(intent, REQUEST_CODE_ADD_TODO);
         });
-
     }
 
     private void loadTodosFromLocalDatabase() {
@@ -79,46 +75,60 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
         }).start();
     }
 
+    private void updateTodoList() {
+        new Thread(() -> {
+            List<Todo> todoList = todoRepository.getAllTodos();
+            sortTodoList(todoList);
+            runOnUiThread(() -> todoAdapter.setTodos(todoList));
+        }).start();
+    }
+
     private void sortTodoList(List<Todo> todoList) {
         switch (currentSortMode) {
             case SORT_BY_DATE_IMPORTANCE:
                 todoList.sort((t1, t2) -> {
-                    // Zuerst nach Done-Status
+                    // Zuerst nach Erledigt/Nicht-Erledigt
                     if (t1.isDone() != t2.isDone()) {
                         return Boolean.compare(t1.isDone(), t2.isDone());
                     }
-                    // Dann nach Datum
-                    if (t1.getExpiry() > 0 && t2.getExpiry() > 0) {
-                        int dateCompare = Long.compare(t1.getExpiry(), t2.getExpiry());
-                        if (dateCompare != 0) {
-                            return dateCompare;
+                    // Wenn beide erledigt oder beide nicht erledigt sind
+                    if (!t1.isDone() && !t2.isDone()) {
+                        // Dann nach Datum
+                        if (t1.getExpiry() != 0 && t2.getExpiry() != 0) {
+                            int dateCompare = Long.compare(t1.getExpiry(), t2.getExpiry());
+                            if (dateCompare != 0) return dateCompare;
+                        } else if (t1.getExpiry() != 0) {
+                            return -1;
+                        } else if (t2.getExpiry() != 0) {
+                            return 1;
                         }
-                    } else if (t1.getExpiry() > 0) {
-                        return -1; // t1 hat Datum, t2 nicht
-                    } else if (t2.getExpiry() > 0) {
-                        return 1; // t2 hat Datum, t1 nicht
+                        // Dann nach Wichtigkeit
+                        return Boolean.compare(!t1.isFavourite(), !t2.isFavourite());
                     }
-                    // Dann nach Wichtigkeit
-                    return Boolean.compare(!t1.isFavourite(), !t2.isFavourite()); // Wichtige zuerst
+                    return 0;
                 });
                 break;
+                
             case SORT_BY_IMPORTANCE_DATE:
                 todoList.sort((t1, t2) -> {
-                    // Zuerst nach Done-Status
+                    // Zuerst nach Erledigt/Nicht-Erledigt
                     if (t1.isDone() != t2.isDone()) {
                         return Boolean.compare(t1.isDone(), t2.isDone());
                     }
-                    // Dann nach Wichtigkeit
-                    if (t1.isFavourite() != t2.isFavourite()) {
-                        return Boolean.compare(!t1.isFavourite(), !t2.isFavourite()); // Wichtige zuerst
-                    }
-                    // Dann nach Datum
-                    if (t1.getExpiry() > 0 && t2.getExpiry() > 0) {
-                        return Long.compare(t1.getExpiry(), t2.getExpiry());
-                    } else if (t1.getExpiry() > 0) {
-                        return -1; // t1 hat Datum, t2 nicht
-                    } else if (t2.getExpiry() > 0) {
-                        return 1; // t2 hat Datum, t1 nicht
+                    // Wenn beide erledigt oder beide nicht erledigt sind
+                    if (!t1.isDone() && !t2.isDone()) {
+                        // Dann nach Wichtigkeit
+                        if (t1.isFavourite() != t2.isFavourite()) {
+                            return Boolean.compare(!t1.isFavourite(), !t2.isFavourite());
+                        }
+                        // Dann nach Datum
+                        if (t1.getExpiry() != 0 && t2.getExpiry() != 0) {
+                            return Long.compare(t1.getExpiry(), t2.getExpiry());
+                        } else if (t1.getExpiry() != 0) {
+                            return -1;
+                        } else if (t2.getExpiry() != 0) {
+                            return 1;
+                        }
                     }
                     return 0;
                 });
@@ -137,34 +147,26 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
 
     @Override
     public void onFavoriteToggle(Todo todo, boolean isFavorite) {
-        // Aktualisiere den Favoritenstatus
         new Thread(() -> {
             todoRepository.updateTodo(todo);
-            // Aktualisiere die Liste
-            loadTodosFromLocalDatabase();
+            updateTodoList();
         }).start();
     }
-
+    
     @Override
     public void onCompletedToggle(Todo todo, boolean isCompleted) {
-        // Aktualisiere den Erledigtstatus
         new Thread(() -> {
             todoRepository.updateTodo(todo);
-            // Aktualisiere die Liste
-            loadTodosFromLocalDatabase();
+            updateTodoList();
         }).start();
     }
-
+    
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-
-        // Aktualisiere die Liste nach Rückkehr aus der Detailansicht
-        if (requestCode == REQUEST_CODE_ADD_TODO && resultCode == RESULT_OK) {
-            loadTodosFromLocalDatabase();
-        }
-        if (requestCode == REQUEST_CODE_EDIT_TODO && resultCode == RESULT_OK) {
-            loadTodosFromLocalDatabase();
+        if ((requestCode == REQUEST_CODE_ADD_TODO || requestCode == REQUEST_CODE_EDIT_TODO) 
+                && resultCode == RESULT_OK) {
+            updateTodoList();
         }
     }
 
