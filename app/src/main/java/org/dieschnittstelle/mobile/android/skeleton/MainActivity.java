@@ -174,44 +174,52 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main_sort, menu);
+        // Setze initial den ersten Sortiermodus als ausgewählt
+        if (currentSortMode == SORT_BY_DATE_IMPORTANCE) {
+            menu.findItem(R.id.action_sort_date_importance).setChecked(true);
+        } else {
+            menu.findItem(R.id.action_sort_importance_date).setChecked(true);
+        }
         return true;
     }
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        // Aktualisiere die Menüelemente entsprechend dem aktuellen Sortiermodus
+        // Stelle sicher, dass nur eine Option ausgewählt ist
         MenuItem sortByDateImportance = menu.findItem(R.id.action_sort_date_importance);
         MenuItem sortByImportanceDate = menu.findItem(R.id.action_sort_importance_date);
 
-        if (currentSortMode == SORT_BY_DATE_IMPORTANCE) {
-            sortByDateImportance.setChecked(true);
-        } else if (currentSortMode == SORT_BY_IMPORTANCE_DATE) {
-            sortByImportanceDate.setChecked(true);
-        }
+        sortByDateImportance.setChecked(currentSortMode == SORT_BY_DATE_IMPORTANCE);
+        sortByImportanceDate.setChecked(currentSortMode == SORT_BY_IMPORTANCE_DATE);
 
         return super.onPrepareOptionsMenu(menu);
     }
 
-    // Behandle die Auswahl von Menüelementen
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
         switch (id) {
             case R.id.action_sort_date_importance:
-                currentSortMode = SORT_BY_DATE_IMPORTANCE;
-                loadTodosFromLocalDatabase();
+                if (!item.isChecked()) {
+                    item.setChecked(true);
+                    currentSortMode = SORT_BY_DATE_IMPORTANCE;
+                    updateTodoList();
+                }
                 return true;
             case R.id.action_sort_importance_date:
-                currentSortMode = SORT_BY_IMPORTANCE_DATE;
-                loadTodosFromLocalDatabase();
+                if (!item.isChecked()) {
+                    item.setChecked(true);
+                    currentSortMode = SORT_BY_IMPORTANCE_DATE;
+                    updateTodoList();
+                }
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
     }
 
-    // Speichere den aktuellen Sortiermodus bei Orientierungwechsel
+    // Speichere den aktuellen Sortiermodus
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         outState.putInt("currentSortMode", currentSortMode);
