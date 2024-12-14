@@ -21,6 +21,7 @@ import org.dieschnittstelle.mobile.android.skeleton.repository.TodoRepository;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.util.Collections;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity implements TodoAdapter.OnItemClickListener {
@@ -101,55 +102,32 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
     }
 
     private void sortTodoList(List<Todo> todoList) {
-        switch (currentSortMode) {
-            case SORT_BY_DATE_IMPORTANCE:
-                todoList.sort((t1, t2) -> {
-                    // Zuerst nach Erledigt/Nicht-Erledigt
-                    if (t1.isDone() != t2.isDone()) {
-                        return Boolean.compare(t1.isDone(), t2.isDone());
-                    }
-                    // Wenn beide erledigt oder beide nicht erledigt sind
-                    if (!t1.isDone() && !t2.isDone()) {
-                        // Dann nach Datum
-                        if (t1.getExpiry() != 0 && t2.getExpiry() != 0) {
-                            int dateCompare = Long.compare(t1.getExpiry(), t2.getExpiry());
-                            if (dateCompare != 0) return dateCompare;
-                        } else if (t1.getExpiry() != 0) {
-                            return -1;
-                        } else if (t2.getExpiry() != 0) {
-                            return 1;
-                        }
-                        // Dann nach Wichtigkeit
-                        return Boolean.compare(!t1.isFavourite(), !t2.isFavourite());
-                    }
-                    return 0;
-                });
-                break;
-                
-            case SORT_BY_IMPORTANCE_DATE:
-                todoList.sort((t1, t2) -> {
-                    // Zuerst nach Erledigt/Nicht-Erledigt
-                    if (t1.isDone() != t2.isDone()) {
-                        return Boolean.compare(t1.isDone(), t2.isDone());
-                    }
-                    // Wenn beide erledigt oder beide nicht erledigt sind
-                    if (!t1.isDone() && !t2.isDone()) {
-                        // Dann nach Wichtigkeit
-                        if (t1.isFavourite() != t2.isFavourite()) {
-                            return Boolean.compare(!t1.isFavourite(), !t2.isFavourite());
-                        }
-                        // Dann nach Datum
-                        if (t1.getExpiry() != 0 && t2.getExpiry() != 0) {
-                            return Long.compare(t1.getExpiry(), t2.getExpiry());
-                        } else if (t1.getExpiry() != 0) {
-                            return -1;
-                        } else if (t2.getExpiry() != 0) {
-                            return 1;
-                        }
-                    }
-                    return 0;
-                });
-                break;
+        if (currentSortMode == SORT_BY_DATE_IMPORTANCE) {
+            Collections.sort(todoList, (t1, t2) -> {
+                // Zuerst nach Fälligkeit sortieren
+                if (t1.getExpiry() != t2.getExpiry()) {
+                    return Long.compare(t1.getExpiry(), t2.getExpiry());
+                }
+                // Bei gleicher Fälligkeit nach Wichtigkeit
+                if (t1.isFavourite() != t2.isFavourite()) {
+                    return t1.isFavourite() ? -1 : 1;
+                }
+                // Bei gleicher Wichtigkeit nach Namen
+                return t1.getName().compareTo(t2.getName());
+            });
+        } else {
+            Collections.sort(todoList, (t1, t2) -> {
+                // Zuerst nach Wichtigkeit sortieren
+                if (t1.isFavourite() != t2.isFavourite()) {
+                    return t1.isFavourite() ? -1 : 1;
+                }
+                // Bei gleicher Wichtigkeit nach Fälligkeit
+                if (t1.getExpiry() != t2.getExpiry()) {
+                    return Long.compare(t1.getExpiry(), t2.getExpiry());
+                }
+                // Bei gleicher Fälligkeit nach Namen
+                return t1.getName().compareTo(t2.getName());
+            });
         }
     }
 
@@ -165,23 +143,23 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
     @Override
     public void onCompletedToggle(Todo todo, boolean isCompleted) {
         todo.setDone(isCompleted);
-        todoRepository.updateTodo(todo, () -> {
-            int position = todoAdapter.getTodoPosition(todo);
-            if (position != -1) {
-                todoAdapter.notifyItemChanged(position);
-            }
-        });
+        new Thread(() -> {
+            todoRepository.updateTodo(todo, () -> {
+                // Nach dem Update die gesamte Liste neu laden und sortieren
+                updateTodoList();
+            });
+        }).start();
     }
 
     @Override
     public void onFavoriteToggle(Todo todo, boolean isFavorite) {
         todo.setFavourite(isFavorite);
-        todoRepository.updateTodo(todo, () -> {
-            int position = todoAdapter.getTodoPosition(todo);
-            if (position != -1) {
-                todoAdapter.notifyItemChanged(position);
-            }
-        });
+        new Thread(() -> {
+            todoRepository.updateTodo(todo, () -> {
+                // Nach dem Update die gesamte Liste neu laden und sortieren
+                updateTodoList();
+            });
+        }).start();
     }
     
     @Override
