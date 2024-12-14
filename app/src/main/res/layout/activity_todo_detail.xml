@@ -63,6 +63,14 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Speichern"/>
+        <Button
+            android:id="@+id/buttonDelete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Löschen"
+            android:backgroundTint="@android:color/holo_red_light"
+            android:visibility="gone"/>
 
     </LinearLayout>
 
