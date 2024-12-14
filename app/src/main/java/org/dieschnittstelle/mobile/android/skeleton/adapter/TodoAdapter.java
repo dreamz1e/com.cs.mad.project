@@ -19,8 +19,11 @@ import org.dieschnittstelle.mobile.android.skeleton.repository.TodoRepository;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Date;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder> {
 
@@ -28,6 +31,8 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
     private Context context;
     private TodoRepository todoRepository;
     private OnItemClickListener listener;
+
+    private SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault());
 
     public interface OnItemClickListener {
         void onItemClick(Todo todo);
@@ -58,20 +63,24 @@ public class TodoAdapter extends RecyclerView.Adapter<TodoAdapter.TodoViewHolder
         Todo todo = todos.get(position);
 
         holder.textViewName.setText(todo.getName());
-        holder.textViewDueDate.setText(todo.getExpiry() != 0 ? todo.getExpiry() + "" : "Kein Fälligkeitsdatum");
+        holder.textViewDueDate.setText(todo.getExpiry() != 0 ? 
+            dateFormat.format(new Date(todo.getExpiry())) : "Kein Fälligkeitsdatum");
         holder.checkBoxCompleted.setChecked(todo.isDone());
         holder.toggleButtonFavorite.setChecked(todo.isFavourite());
 
-        Instant expiryInstant = Instant.ofEpochMilli(todo.getExpiry());
         // Visuelle Hervorhebung überfälliger Todos
-        if (!todo.isDone() && todo.getExpiry() != 0 && expiryInstant.isBefore(Instant.now())) {
+        if (!todo.isDone() && todo.getExpiry() != 0 && 
+            Instant.ofEpochMilli(todo.getExpiry()).isBefore(Instant.now())) {
             // Ändere die Textfarbe für überfällige Todos
             holder.textViewName.setTextColor(Color.RED);
             holder.textViewDueDate.setTextColor(Color.RED);
+            // Optional: Hintergrund hervorheben
+            holder.itemView.setBackgroundColor(Color.parseColor("#FFEBEE")); // Leichtes Rot
         } else {
-            // Standardfarbe
+            // Standardfarben
             holder.textViewName.setTextColor(Color.BLACK);
             holder.textViewDueDate.setTextColor(Color.DKGRAY);
+            holder.itemView.setBackgroundColor(Color.TRANSPARENT);
         }
 
         // KlickListener für die Detailansicht

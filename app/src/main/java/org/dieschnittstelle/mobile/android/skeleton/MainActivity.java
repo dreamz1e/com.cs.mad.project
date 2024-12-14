@@ -28,12 +28,17 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
     private static final int REQUEST_CODE_ADD_TODO = 1;
     private static final int REQUEST_CODE_EDIT_TODO = 2;
 
+    private static final String KEY_SORT_MODE = "currentSortMode";
+    private static final String KEY_SCROLL_POSITION = "scrollPosition";
+
     private RecyclerView recyclerView;
     private TodoAdapter todoAdapter;
     private TodoRepository todoRepository;
 
+
     // Variable zum Speichern des aktuellen Sortiermodus
     private int currentSortMode = SORT_BY_DATE_IMPORTANCE;
+    private int lastScrollPosition = 0;
     private static final int SORT_BY_DATE_IMPORTANCE = 0;
     private static final int SORT_BY_IMPORTANCE_DATE = 1;
 
@@ -44,7 +49,8 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
     
         // Setze Standardsortiermodus, falls nicht gespeichert
         if (savedInstanceState != null) {
-            currentSortMode = savedInstanceState.getInt("currentSortMode", SORT_BY_DATE_IMPORTANCE);
+            currentSortMode = savedInstanceState.getInt(KEY_SORT_MODE, SORT_BY_DATE_IMPORTANCE);
+            lastScrollPosition = savedInstanceState.getInt(KEY_SCROLL_POSITION, 0);
         }
     
         // Initialisiere Repository und RecyclerView
@@ -54,8 +60,10 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
         todoAdapter = new TodoAdapter(this, todoRepository, this);
         recyclerView.setAdapter(todoAdapter);
     
-        // Lade initial sortierte Todos
-        updateTodoList();
+        // Lade Todos nur wenn sie noch nicht geladen wurden
+        if (todoAdapter.getItemCount() == 0) {
+            updateTodoList();
+        }
     
         // FAB Setup
         FloatingActionButton fabAddTodo = findViewById(R.id.fabAddTodo);
@@ -79,7 +87,16 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
         new Thread(() -> {
             List<Todo> todoList = todoRepository.getAllTodos();
             sortTodoList(todoList);
-            runOnUiThread(() -> todoAdapter.setTodos(todoList));
+            runOnUiThread(() -> {
+                todoAdapter.setTodos(todoList);
+                // Stelle Scrollposition wieder her
+                recyclerView.post(() -> {
+                    LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+                    if (layoutManager != null) {
+                        layoutManager.scrollToPosition(lastScrollPosition);
+                    }
+                });
+            });
         }).start();
     }
 
@@ -222,7 +239,30 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
     // Speichere den aktuellen Sortiermodus
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
-        outState.putInt("currentSortMode", currentSortMode);
         super.onSaveInstanceState(outState);
+        // Speichere Sortiermodus
+        outState.putInt(KEY_SORT_MODE, currentSortMode);
+        
+        // Speichere Scrollposition
+        LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+        if (layoutManager != null) {
+            lastScrollPosition = layoutManager.findFirstVisibleItemPosition();
+            outState.putInt(KEY_SCROLL_POSITION, lastScrollPosition);
+        }
+    }
+
+    @Override
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        currentSortMode = savedInstanceState.getInt(KEY_SORT_MODE, SORT_BY_DATE_IMPORTANCE);
+        lastScrollPosition = savedInstanceState.getInt(KEY_SCROLL_POSITION, 0);
+        
+        // Stelle Scrollposition wieder her
+        recyclerView.post(() -> {
+            LinearLayoutManager layoutManager = (LinearLayoutManager) recyclerView.getLayoutManager();
+            if (layoutManager != null) {
+                layoutManager.scrollToPosition(lastScrollPosition);
+            }
+        });
     }
 }
