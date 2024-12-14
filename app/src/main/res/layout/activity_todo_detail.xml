@@ -72,6 +72,26 @@
             android:backgroundTint="@android:color/holo_red_light"
             android:visibility="gone"/>
 
+        <!-- Verknüpfte Kontakte -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Verknüpfte Kontakte"
+            android:layout_marginTop="16dp"/>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerViewContacts"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"/>
+
+        <Button
+            android:id="@+id/buttonAddContact"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Kontakt hinzufügen"
+            android:layout_marginTop="8dp"/>
+
     </LinearLayout>
 
 </ScrollView>

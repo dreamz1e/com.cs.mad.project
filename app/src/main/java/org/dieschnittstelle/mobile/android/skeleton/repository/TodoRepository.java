@@ -7,6 +7,7 @@ import android.os.Handler;
 
 import org.dieschnittstelle.mobile.android.skeleton.DatabaseClient;
 import org.dieschnittstelle.mobile.android.skeleton.model.Todo;
+import org.dieschnittstelle.mobile.android.skeleton.model.TodoContact;
 import org.dieschnittstelle.mobile.android.skeleton.database.ITodoCRUDOperation;
 import org.dieschnittstelle.mobile.android.skeleton.remote.RetrofitClient;
 import org.dieschnittstelle.mobile.android.skeleton.remote.ITodoAPIService;
@@ -258,5 +259,17 @@ public class TodoRepository {
                 Log.e(TAG, "Fehler beim Update des Todos", e);
             }
         }).start();
+    }
+
+    public void insertTodoContact(TodoContact todoContact) {
+        todoCRUDOperation.insertTodoContact(todoContact);
+    }
+
+    public void deleteTodoContact(TodoContact todoContact) {
+        todoCRUDOperation.deleteTodoContact(todoContact);
+    }
+
+    public List<TodoContact> getContactsForTodo(int todoId) {
+        return todoCRUDOperation.getContactsForTodo(todoId);
     }
 }

@@ -8,6 +8,7 @@ import androidx.room.Query;
 import androidx.room.Update;
 
 import org.dieschnittstelle.mobile.android.skeleton.model.Todo;
+import org.dieschnittstelle.mobile.android.skeleton.model.TodoContact;
 
 import java.util.List;
 
@@ -40,4 +41,16 @@ public interface ITodoCRUDOperation {
     @WorkerThread
     @Query("DELETE FROM Todo")
     void deleteAllTodos();
+
+    @WorkerThread
+    @Query("SELECT * FROM TodoContact WHERE todoId = :todoId")
+    List<TodoContact> getContactsForTodo(int todoId);
+    
+    @WorkerThread
+    @Insert
+    void insertTodoContact(TodoContact todoContact);
+    
+    @WorkerThread
+    @Delete
+    void deleteTodoContact(TodoContact todoContact);
 }
