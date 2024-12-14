@@ -1,7 +1,9 @@
 package org.dieschnittstelle.mobile.android.skeleton.repository;
 
 import android.content.Context;
+import android.os.Looper;
 import android.util.Log;
+import android.os.Handler;
 
 import org.dieschnittstelle.mobile.android.skeleton.DatabaseClient;
 import org.dieschnittstelle.mobile.android.skeleton.model.Todo;
@@ -56,33 +58,22 @@ public class TodoRepository {
         }.execute();
     }
 
-    public void updateTodo(final Todo todo) {
-        new MADAsyncTask<Void, Void, Void>() {
-            @Override
-            protected Void doInBackground(Void... voids) {
-                // Lokales Update in der SQLite-Datenbank
-                todoCRUDOperation.updateTodo(todo);
-
-                // Prüfung, ob die Webanwendung verfügbar ist
-                if (isWebApplicationAvailable()) {
-                    // Remote-Update auf der Webanwendung
-                    try {
-                        Response<Todo> response = apiService.updateTodo(todo.getId(), todo).execute();
-                        if (response.isSuccessful()) {
-                            Log.d(TAG, "Todo erfolgreich auf der Webanwendung aktualisiert.");
-                        } else {
-                            Log.e(TAG, "Fehler beim Aktualisieren des Todos auf der Webanwendung: " + response.message());
-                        }
-                    } catch (IOException e) {
-                        Log.e(TAG, "Fehler beim Aktualisieren des Todos auf der Webanwendung", e);
+    public void updateTodo(Todo todo, Runnable onSuccess) {
+        new Thread(() -> {
+            todoCRUDOperation.updateTodo(todo);
+            if (this.isWebApplicationAvailable()) {
+                try {
+                    Response<Todo> response = apiService.updateTodo(todo.getId(), todo).execute();
+                    if (!response.isSuccessful()) {
+                        Log.e(TAG, "Fehler beim Update des Todos auf dem Server");
                     }
-                } else {
-                    Log.w(TAG, "Webanwendung nicht verfügbar. Änderungen werden später synchronisiert.");
-                    // Hier könntest du das Todo als "zu synchronisieren" markieren
+                } catch (IOException e) {
+                    Log.e(TAG, "Netzwerkfehler beim Update des Todos", e);
                 }
-                return null;
             }
-        }.execute();
+            // Führe den onSuccess-Callback auf dem UI-Thread aus
+            new Handler(Looper.getMainLooper()).post(onSuccess);
+        }).start();
     }
     // Methode zum Abrufen eines Todos nach ID
     public Todo getTodoById(int id) {

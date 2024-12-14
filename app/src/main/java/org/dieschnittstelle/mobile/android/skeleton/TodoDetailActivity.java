@@ -16,19 +16,21 @@ import org.dieschnittstelle.mobile.android.skeleton.repository.TodoRepository;
 
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 
 public class TodoDetailActivity extends AppCompatActivity {
 
     private EditText editTextName, editTextDescription;
     private Button buttonExpiryDate, buttonSave;
-    private CheckBox checkBoxFavourite, checkBoxDone;
+    private CheckBox checkBoxCompleted;
+    private CheckBox checkBoxFavourite;
 
-    private long selectedExpiryTimestamp = 0L; // UTC-Zeitstempel
+    private long selectedExpiryTimestamp = 0L;
+    private boolean isEditMode = false;
 
     private TodoRepository todoRepository;
-
-    private Todo todo; // Wird null sein, wenn ein neues Todo erstellt wird
+    private Todo todo;
 
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy", Locale.getDefault());
 
@@ -37,18 +39,21 @@ public class TodoDetailActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_todo_detail);
 
+        // Initialisiere Views
         editTextName = findViewById(R.id.editTextName);
         editTextDescription = findViewById(R.id.editTextDescription);
-        buttonExpiryDate = findViewById(R.id.buttonExpiryDate); // Beibehaltung des IDs
-        checkBoxFavourite = findViewById(R.id.checkBoxFavourite);
-        checkBoxDone = findViewById(R.id.checkBoxCompleted); // Umbenannt von 'Completed' zu 'Done'
+        buttonExpiryDate = findViewById(R.id.buttonExpiryDate);
         buttonSave = findViewById(R.id.buttonSave);
+        checkBoxCompleted = findViewById(R.id.checkBoxCompleted);
+        checkBoxFavourite = findViewById(R.id.checkBoxFavourite);
 
         todoRepository = new TodoRepository(getApplicationContext());
 
+        // Prüfe ob wir im Edit-Mode sind
         int todoId = getIntent().getIntExtra("todoId", -1);
+        isEditMode = todoId != -1;
 
-        if (todoId != -1) {
+        if (isEditMode) {
             // Bearbeiten eines bestehenden Todos
             new Thread(() -> {
                 todo = todoRepository.getTodoById(todoId);
@@ -60,27 +65,23 @@ public class TodoDetailActivity extends AppCompatActivity {
         }
 
         buttonExpiryDate.setOnClickListener(v -> showDatePicker());
-
         buttonSave.setOnClickListener(v -> saveTodo());
-
     }
 
     private void populateFields(Todo todo) {
         editTextName.setText(todo.getName());
         editTextDescription.setText(todo.getDescription());
         checkBoxFavourite.setChecked(todo.isFavourite());
-        checkBoxDone.setChecked(todo.isDone());
+        checkBoxCompleted.setChecked(todo.isDone());
 
         if (todo.getExpiry() > 0) {
             selectedExpiryTimestamp = todo.getExpiry();
-            String dateString = dateFormat.format(selectedExpiryTimestamp);
-            buttonExpiryDate.setText(dateString);
+            buttonExpiryDate.setText(dateFormat.format(new Date(selectedExpiryTimestamp)));
         }
     }
 
     private void showDatePicker() {
         final Calendar c = Calendar.getInstance();
-
         if (selectedExpiryTimestamp > 0) {
             c.setTimeInMillis(selectedExpiryTimestamp);
         }
@@ -89,53 +90,45 @@ public class TodoDetailActivity extends AppCompatActivity {
         int month = c.get(Calendar.MONTH);
         int day = c.get(Calendar.DAY_OF_MONTH);
 
-        DatePickerDialog datePickerDialog = new DatePickerDialog(TodoDetailActivity.this,
+        DatePickerDialog datePickerDialog = new DatePickerDialog(this,
                 (view, year1, month1, dayOfMonth) -> {
                     Calendar selectedDate = Calendar.getInstance();
                     selectedDate.set(year1, month1, dayOfMonth, 0, 0, 0);
                     selectedDate.set(Calendar.MILLISECOND, 0);
                     selectedExpiryTimestamp = selectedDate.getTimeInMillis();
-                    String dateString = dateFormat.format(selectedExpiryTimestamp);
-                    buttonExpiryDate.setText(dateString);
+                    buttonExpiryDate.setText(dateFormat.format(new Date(selectedExpiryTimestamp)));
                 }, year, month, day);
 
         datePickerDialog.show();
     }
 
     private void saveTodo() {
-        // Werte aus den Feldern abrufen
         String name = editTextName.getText().toString().trim();
-        String description = editTextDescription.getText().toString().trim();
-        boolean isFavourite = checkBoxFavourite.isChecked();
-        boolean isDone = checkBoxDone.isChecked();
-
         if (name.isEmpty()) {
-            Toast.makeText(this, "Bitte einen Namen eingeben.", Toast.LENGTH_SHORT).show();
+            editTextName.setError("Name ist erforderlich");
             return;
         }
 
-        // Aktualisiere das Todo-Objekt
+        if (todo == null) {
+            todo = new Todo();
+        }
+
         todo.setName(name);
-        todo.setDescription(description);
-        todo.setFavourite(isFavourite);
-        todo.setDone(isDone);
+        todo.setDescription(editTextDescription.getText().toString());
         todo.setExpiry(selectedExpiryTimestamp);
+        todo.setFavourite(checkBoxFavourite.isChecked());
+        todo.setDone(checkBoxCompleted.isChecked());
 
-        // In der Datenbank speichern
-        new Thread(() -> {
-            if (todo.getId() == 0) {
-                // Neues Todo
-                todoRepository.insertTodo(todo);
-            } else {
-                // Bestehendes Todo
-                todoRepository.updateTodo(todo);
-            }
-
-            // Rückkehr zur MainActivity
-            runOnUiThread(() -> {
+        if (isEditMode) {
+            todoRepository.updateTodo(todo, () -> {
+                // Nach erfolgreicher Aktualisierung
                 setResult(RESULT_OK);
                 finish();
             });
-        }).start();
+        } else {
+            todoRepository.insertTodo(todo);
+            setResult(RESULT_OK);
+            finish();
+        }
     }
 }

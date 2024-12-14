@@ -163,19 +163,25 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
     }
 
     @Override
-    public void onFavoriteToggle(Todo todo, boolean isFavorite) {
-        new Thread(() -> {
-            todoRepository.updateTodo(todo);
-            updateTodoList();
-        }).start();
-    }
-    
-    @Override
     public void onCompletedToggle(Todo todo, boolean isCompleted) {
-        new Thread(() -> {
-            todoRepository.updateTodo(todo);
-            updateTodoList();
-        }).start();
+        todo.setDone(isCompleted);
+        todoRepository.updateTodo(todo, () -> {
+            int position = todoAdapter.getTodoPosition(todo);
+            if (position != -1) {
+                todoAdapter.notifyItemChanged(position);
+            }
+        });
+    }
+
+    @Override
+    public void onFavoriteToggle(Todo todo, boolean isFavorite) {
+        todo.setFavourite(isFavorite);
+        todoRepository.updateTodo(todo, () -> {
+            int position = todoAdapter.getTodoPosition(todo);
+            if (position != -1) {
+                todoAdapter.notifyItemChanged(position);
+            }
+        });
     }
     
     @Override
