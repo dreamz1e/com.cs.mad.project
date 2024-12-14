@@ -24,6 +24,8 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import java.util.Collections;
 import java.util.List;
 
+import retrofit2.Response;
+
 public class MainActivity extends AppCompatActivity implements TodoAdapter.OnItemClickListener {
 
     private static final int REQUEST_CODE_ADD_TODO = 1;
@@ -61,6 +63,9 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
         todoAdapter = new TodoAdapter(this, todoRepository, this);
         recyclerView.setAdapter(todoAdapter);
     
+        // Führe die Synchronisation durch
+        synchronizeWithBackend();
+    
         // Lade Todos nur wenn sie noch nicht geladen wurden
         if (todoAdapter.getItemCount() == 0) {
             updateTodoList();
@@ -72,6 +77,31 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
             Intent intent = new Intent(MainActivity.this, TodoDetailActivity.class);
             startActivityForResult(intent, REQUEST_CODE_ADD_TODO);
         });
+    }
+
+    private void synchronizeWithBackend() {
+        new Thread(() -> {
+            try {
+                // Hole Todos vom Backend
+                Response<List<Todo>> response = todoRepository.getApiService().readAllTodos().execute();
+                if (response.isSuccessful() && response.body() != null) {
+                    List<Todo> remoteTodos = response.body();
+                    
+                    // Lösche alle lokalen Todos
+                    todoRepository.deleteAllTodosLocally();
+                    
+                    // Speichere die Remote-Todos lokal
+                    todoRepository.insertTodosLocally(remoteTodos);
+                    
+                    // Aktualisiere die UI
+                    runOnUiThread(() -> updateTodoList());
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, 
+                    "Synchronisation fehlgeschlagen", Toast.LENGTH_SHORT).show());
+            }
+        }).start();
     }
 
     private void loadTodosFromLocalDatabase() {

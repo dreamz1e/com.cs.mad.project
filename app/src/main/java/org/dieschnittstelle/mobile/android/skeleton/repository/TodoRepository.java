@@ -57,7 +57,7 @@ public class TodoRepository {
             }
         }.execute();
     }
-
+/* 
     public void updateTodo(Todo todo, Runnable onSuccess) {
         new Thread(() -> {
             todoCRUDOperation.updateTodo(todo);
@@ -74,7 +74,7 @@ public class TodoRepository {
             // Führe den onSuccess-Callback auf dem UI-Thread aus
             new Handler(Looper.getMainLooper()).post(onSuccess);
         }).start();
-    }
+    }*/
     // Methode zum Abrufen eines Todos nach ID
     public Todo getTodoById(int id) {
         return todoCRUDOperation.getTodoById(id);
@@ -82,24 +82,29 @@ public class TodoRepository {
 
     // Methode zum Einfügen eines neuen Todos
     public void insertTodo(final Todo todo) {
-        new MADAsyncTask<Todo, Void, Void>() {
+        new MADAsyncTask<Todo, Void, Todo>() {
             @Override
-            protected Void doInBackground(Todo... todos) {
-                // In lokale Datenbank einfügen
-                todoCRUDOperation.insertTodo(todos[0]);
-                
-                // Nach erfolgreichem Einfügen in die lokale Datenbank, Todo an die Webanwendung senden
-                if (isWebApplicationAvailable()) {
-                    try {
-                        Response<Todo> response = apiService.createTodo(todo).execute();
-                        if (!response.isSuccessful()) {
-                            Log.e(TAG, "Fehler beim Erstellen des Todos auf dem Server");
-                        }
-                    } catch (IOException e) {
-                        Log.e(TAG, "Netzwerkfehler beim Erstellen des Todos", e);
+            protected Todo doInBackground(Todo... todos) {
+                try {
+                    // Zuerst an Backend senden
+                    Response<Todo> response = apiService.createTodo(todos[0]).execute();
+                    if (response.isSuccessful() && response.body() != null) {
+                        Todo createdTodo = response.body();
+                        // Dann in lokale DB speichern
+                        todoCRUDOperation.insertTodo(createdTodo);
+                        return createdTodo;
                     }
+                } catch (IOException e) {
+                    Log.e(TAG, "Fehler beim Erstellen des Todos", e);
                 }
                 return null;
+            }
+
+            @Override
+            protected void onPostExecute(Todo result) {
+                if (result != null) {
+                    // Optional: UI aktualisieren
+                }
             }
         }.execute(todo);
     }
@@ -170,26 +175,18 @@ public class TodoRepository {
     }
 
     public void deleteTodo(Todo todo) {
-        new MADAsyncTask<Todo, Void, Void>() {
-            @Override
-            protected Void doInBackground(Todo... todos) {
-                // Lösche zuerst aus der lokalen Datenbank
-                todoCRUDOperation.deleteTodo(todos[0]);
-    
-                // Wenn die Webanwendung verfügbar ist, lösche auch dort
-                if (isWebApplicationAvailable()) {
-                    try {
-                        Response<Boolean> response = apiService.deleteTodo(todos[0].getId()).execute();
-                        if (!response.isSuccessful()) {
-                            Log.e(TAG, "Fehler beim Löschen des Todos auf dem Server");
-                        }
-                    } catch (IOException e) {
-                        Log.e(TAG, "Netzwerkfehler beim Löschen des Todos", e);
-                    }
+        new Thread(() -> {
+            try {
+                // Zuerst vom Backend löschen
+                Response<Boolean> response = apiService.deleteTodo(todo.getId()).execute();
+                if (response.isSuccessful() && Boolean.TRUE.equals(response.body())) {
+                    // Dann aus lokaler DB löschen
+                    todoCRUDOperation.deleteTodo(todo);
                 }
-                return null;
+            } catch (IOException e) {
+                Log.e(TAG, "Fehler beim Löschen des Todos", e);
             }
-        }.execute(todo);
+        }).start();
     }
 
     // Methode zum Löschen lokaler Todos
@@ -232,5 +229,34 @@ public class TodoRepository {
         // Implementiere eine Methode, um die Erreichbarkeit der Webanwendung zu prüfen
         // Zum Beispiel einen Ping oder eine Testanfrage senden
         return true; // Platzhalter
+    }
+
+    public ITodoAPIService getApiService() {
+        return apiService;
+    }
+
+    public void deleteAllTodosLocally() {
+        todoCRUDOperation.deleteAllTodos();
+    }
+
+    public void insertTodosLocally(List<Todo> todos) {
+        todoCRUDOperation.insertTodos(todos);
+    }
+
+    // Verbesserte Update-Methode
+    public void updateTodo(Todo todo, Runnable onSuccess) {
+        new Thread(() -> {
+            try {
+                // Zuerst Backend aktualisieren
+                Response<Todo> response = apiService.updateTodo(todo.getId(), todo).execute();
+                if (response.isSuccessful() && response.body() != null) {
+                    // Dann lokale DB aktualisieren
+                    todoCRUDOperation.updateTodo(todo);
+                    new Handler(Looper.getMainLooper()).post(onSuccess);
+                }
+            } catch (IOException e) {
+                Log.e(TAG, "Fehler beim Update des Todos", e);
+            }
+        }).start();
     }
 }
