@@ -238,6 +238,7 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
     // Erstelle ein Optionsmenü zum Umschalten des Sortiermodus
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_main, menu);
         getMenuInflater().inflate(R.menu.menu_main_sort, menu);
         // Setze initial den ersten Sortiermodus als ausgewählt
         if (currentSortMode == SORT_BY_DATE_IMPORTANCE) {
@@ -247,6 +248,7 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
         }
         return true;
     }
+
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
@@ -260,11 +262,10 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
         return super.onPrepareOptionsMenu(menu);
     }
 
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        int id = item.getItemId();
-
-        switch (id) {
+        switch (item.getItemId()) {
             case R.id.action_sort_date_importance:
                 if (!item.isChecked()) {
                     item.setChecked(true);
@@ -272,6 +273,7 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
                     updateTodoList();
                 }
                 return true;
+            
             case R.id.action_sort_importance_date:
                 if (!item.isChecked()) {
                     item.setChecked(true);
@@ -279,9 +281,67 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
                     updateTodoList();
                 }
                 return true;
+            
+            case R.id.action_sync:
+                new Thread(() -> {
+                    boolean isAvailable = todoRepository.checkWebAvailability();
+                    runOnUiThread(() -> {
+                        if (isAvailable) {
+                            synchronizeWithBackend();
+                        } else {
+                            showWebUnavailableWarning();
+                        }
+                    });
+                }).start();
+                return true;
+            
+            case R.id.action_delete_local:
+                showDeleteConfirmationDialog("Delete Local Todos?", 
+                    "This will delete all todos from your device.", 
+                    () -> {
+                        new Thread(() -> {
+                            todoRepository.deleteLocalTodos();
+                            runOnUiThread(() -> {
+                                updateTodoList();
+                                Toast.makeText(this, "Local todos deleted", Toast.LENGTH_SHORT).show();
+                            });
+                        }).start();
+                    });
+                return true;
+            
+            case R.id.action_delete_server:
+                new Thread(() -> {
+                    boolean isAvailable = todoRepository.checkWebAvailability();
+                    runOnUiThread(() -> {
+                        if (isAvailable) {
+                            showDeleteConfirmationDialog("Delete Server Todos?", 
+                                "This will delete all todos from the server.", 
+                                () -> {
+                                    new Thread(() -> {
+                                        todoRepository.deleteRemoteTodos();
+                                        runOnUiThread(() -> Toast.makeText(this, 
+                                            "Server todos deleted", Toast.LENGTH_SHORT).show());
+                                    }).start();
+                                });
+                        } else {
+                            showWebUnavailableWarning();
+                        }
+                    });
+                }).start();
+                return true;
+            
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    private void showDeleteConfirmationDialog(String title, String message, Runnable onConfirm) {
+        new AlertDialog.Builder(this)
+            .setTitle(title)
+            .setMessage(message)
+            .setPositiveButton("Delete", (dialog, which) -> onConfirm.run())
+            .setNegativeButton("Cancel", null)
+            .show();
     }
 
     // Speichere den aktuellen Sortiermodus

@@ -7,13 +7,13 @@
         android:orderInCategory="100"
         app:showAsAction="never" />
     <item
-        android:id="@+id/action_delete_remote"
+        android:id="@+id/action_delete_server"
         android:title="Alle entfernten Todos löschen"
         android:orderInCategory="200"
         app:showAsAction="never" />
     <item
-        android:id="@+id/action_synchronize"
+        android:id="@+id/action_sync"
         android:title="Synchronisieren"
         android:orderInCategory="300"
-        app:showAsAction="never" />
+        app:showAsAction="ifRoom" />
 </menu>
