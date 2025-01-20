@@ -19,6 +19,7 @@ import com.cs.mad.project.model.User;
 import com.cs.mad.project.remote.RetrofitClient;
 import com.cs.mad.project.remote.ITodoAPIService;
 import com.cs.mad.project.util.MADAsyncTask;
+import com.cs.mad.project.repository.TodoRepository;
 
 import retrofit2.Call;
 import retrofit2.Response;
@@ -149,68 +150,43 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     // Asynchrone Login-Task
-    private class LoginTask extends MADAsyncTask<String, Void, Boolean> {
-
+    private class LoginTask extends AsyncTask<String, Void, Boolean> {
         @Override
         protected void onPreExecute() {
-            // ProgressDialog anzeigen
-            progressDialog = new ProgressDialog(LoginActivity.this);
-            progressDialog.setMessage("Anmeldung wird überprüft...");
-            progressDialog.setCancelable(false);
-            progressDialog.show();
+            progressDialog = ProgressDialog.show(LoginActivity.this, 
+                "Login", "Authenticating...", true);
         }
 
         @Override
         protected Boolean doInBackground(String... params) {
-            // Verzögerung einfügen
-            try {
-                Thread.sleep(2000); // 2 Sekunden Verzögerung
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-
-            // Überprüfung der Anmeldedaten
             String email = params[0];
             String password = params[1];
+            
+            TodoRepository todoRepository = new TodoRepository(LoginActivity.this);
+            if (!todoRepository.checkWebAvailability()) {
+                // If web is not available, allow login with default credentials
+                return email.equals("s@bht.de") && password.equals("000000");
+            }
 
-            if (isWebAvailable) {
-                // Anmeldedaten an die Webanwendung senden
-                ITodoAPIService apiService = RetrofitClient.getInstance().getApiService();
-
-                User user = new User();
-                user.setEmail(email);
-                user.setPwd(password);
-
-                Call<Boolean> call = apiService.authenticateUser(user);
-                try {
-                    Response<Boolean> response = call.execute();
-                    if (response.isSuccessful() && Boolean.TRUE.equals(response.body())) {
-                        return true; // Anmeldung erfolgreich
-                    } else {
-                        return false; // Anmeldung fehlgeschlagen
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    return false; // Fehler bei der Anfrage
-                }
-            } else {
-                // Webanwendung nicht verfügbar
+            try {
+                User user = new User(email, password);
+                Response<Boolean> response = todoRepository.getApiService().authenticateUser(user).execute();
+                return response.isSuccessful() && Boolean.TRUE.equals(response.body());
+            } catch (Exception e) {
+                e.printStackTrace();
                 return false;
             }
         }
 
         @Override
         protected void onPostExecute(Boolean success) {
-            // ProgressDialog ausblenden
             progressDialog.dismiss();
-
+            
             if (success) {
-                // Weiter zur MainActivity
                 Intent intent = new Intent(LoginActivity.this, MainActivity.class);
                 startActivity(intent);
                 finish();
             } else {
-                // Fehlermeldung anzeigen
                 textViewLoginError.setVisibility(View.VISIBLE);
             }
         }
@@ -218,19 +194,20 @@ public class LoginActivity extends AppCompatActivity {
 
     // Methode zur Überprüfung der Verfügbarkeit der Webanwendung
     private void checkWebApplicationAvailability() {
-        // Implementiere hier deine Logik zur Überprüfung
-        // Setze 'isWebAvailable' entsprechend
-        // Wenn die Webanwendung nicht verfügbar ist, direkt zur MainActivity wechseln
-
-        // Beispielhaft (sollte durch eine echte Überprüfung ersetzt werden)
-        isWebAvailable = true; // oder false
-
-        if (!isWebAvailable) {
-            Toast.makeText(this, "Webanwendung nicht verfügbar. Anzeige der Todos.", Toast.LENGTH_LONG).show();
-            Intent intent = new Intent(LoginActivity.this, MainActivity.class);
-            startActivity(intent);
-            finish();
-        }
+        new Thread(() -> {
+            TodoRepository todoRepository = new TodoRepository(this);
+            boolean isWebAvailable = todoRepository.checkWebAvailability();
+            
+            runOnUiThread(() -> {
+                if (!isWebAvailable) {
+                    // If web is not available, skip login and go to MainActivity
+                    Toast.makeText(this, "Web service unavailable. Operating in offline mode.", Toast.LENGTH_LONG).show();
+                    Intent intent = new Intent(LoginActivity.this, MainActivity.class);
+                    startActivity(intent);
+                    finish();
+                }
+            });
+        }).start();
     }
 
     @Override

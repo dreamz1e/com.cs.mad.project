@@ -140,7 +140,7 @@ public class TodoDetailActivity extends AppCompatActivity {
         checkBoxFavourite = findViewById(R.id.checkBoxFavourite);
 
         // Prüfe, ob ein existierendes Todo bearbeitet wird
-        int todoId = getIntent().getIntExtra("todoId", -1);
+        long todoId = getIntent().getLongExtra("todoId", -1);
         isEditMode = todoId != -1;
 
         if (isEditMode) {
@@ -237,58 +237,50 @@ public class TodoDetailActivity extends AppCompatActivity {
     }
 
     private void saveTodo() {
-        // Hole die Werte aus den Eingabefeldern
-        String name = editTextName.getText().toString();
-        String description = editTextDescription.getText().toString();
-        boolean important = checkBoxFavourite.isChecked();
-        boolean completed = checkBoxCompleted.isChecked();
-
-        // Aktualisiere das Todo-Objekt
-        todo.setName(name);
-        todo.setDescription(description);
-        todo.setFavourite(important);
-        todo.setDone(completed);
-        todo.setExpiry(selectedExpiryTimestamp);
-
-        // Speichere das Todo und die Kontakte
-        new Thread(() -> {
-            // Temporär die komplexen Kontakte speichern
-            List<TodoContact> tempContacts = todo.getContacts();
+        if (validateInput()) {
+            String name = editTextName.getText().toString();
+            String description = editTextDescription.getText().toString();
             
-            // Erstelle eine Liste von Kontakt-IDs für den Server
-            List<String> contactIds = new ArrayList<>();
-            if (tempContacts != null) {
-                for (TodoContact contact : tempContacts) {
-                    contactIds.add(contact.getContactId());
-                }
-            }
-            
-            // Setze die Kontakt-IDs für den Server-Request
-            todo.setContacts(null); // Zuerst auf null setzen
-            try {
-                // Setze die String-Liste der Kontakt-IDs
-                java.lang.reflect.Field contactsField = Todo.class.getDeclaredField("contacts");
-                contactsField.setAccessible(true);
-                contactsField.set(todo, contactIds);
-
+            if (!isEditMode) {
+                // Create new todo
+                Todo newTodo = new Todo();
+                newTodo.setName(name);
+                newTodo.setDescription(description);
+                newTodo.setExpiry(selectedExpiryTimestamp);
+                newTodo.setDone(checkBoxCompleted.isChecked());
+                newTodo.setFavourite(checkBoxFavourite.isChecked());
+                newTodo.setContacts(new ArrayList<>());
+                newTodo.setTodoContacts(new ArrayList<>());
+                
+                todoRepository.createTodo(newTodo, () -> {
+                    Toast.makeText(this, "Todo created successfully", Toast.LENGTH_SHORT).show();
+                    setResult(RESULT_OK);
+                    finish();
+                });
+            } else {
+                // Update existing todo
+                todo.setName(name);
+                todo.setDescription(description);
+                todo.setExpiry(selectedExpiryTimestamp);
+                todo.setDone(checkBoxCompleted.isChecked());
+                todo.setFavourite(checkBoxFavourite.isChecked());
+                
                 todoRepository.updateTodo(todo, () -> {
-                    // Nach erfolgreichem Update die komplexen Kontakte wiederherstellen
-                    todo.setContacts(tempContacts);
-                    
-                    runOnUiThread(() -> {
-                        setResult(RESULT_OK);
-                        finish();
-                    });
-                });
-            } catch (Exception e) {
-                e.printStackTrace();
-                runOnUiThread(() -> {
-                    Toast.makeText(TodoDetailActivity.this, 
-                        "Fehler beim Speichern der Kontakte", 
-                        Toast.LENGTH_SHORT).show();
+                    saveContacts();
+                    setResult(RESULT_OK);
+                    finish();
                 });
             }
-        }).start();
+        }
+    }
+
+    private boolean validateInput() {
+        String name = editTextName.getText().toString();
+        if (name.trim().isEmpty()) {
+            editTextName.setError("Name is required");
+            return false;
+        }
+        return true;
     }
 
     private void showDeleteConfirmationDialog() {
@@ -313,7 +305,7 @@ public class TodoDetailActivity extends AppCompatActivity {
     }
 
     @Override
-    protected void onSaveInstanceState(@NonNull Bundle outState) {
+    protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putString("name", editTextName.getText().toString());
         outState.putString("description", editTextDescription.getText().toString());
@@ -321,7 +313,7 @@ public class TodoDetailActivity extends AppCompatActivity {
         outState.putBoolean("isFavorite", checkBoxFavourite.isChecked());
         outState.putBoolean("isCompleted", checkBoxCompleted.isChecked());
         if (todo != null) {
-            outState.putInt("todoId", todo.getId());
+            outState.putLong("todoId", todo.getId());
         }
     }
     
@@ -368,7 +360,7 @@ public class TodoDetailActivity extends AppCompatActivity {
 
     private void addSelectedContact(Uri contactUri) {
         if (todo.getId() == 0) {
-            Toast.makeText(this, "Bitte speichern Sie das Todo zuerst", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Please save the todo first", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -378,29 +370,29 @@ public class TodoDetailActivity extends AppCompatActivity {
             
             if (cursor != null && cursor.moveToFirst()) {
                 @SuppressLint("Range") String contactId = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts._ID));
-                @SuppressLint("Range")String contactName = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
+                @SuppressLint("Range") String contactName = cursor.getString(cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
                 
                 String email = getContactEmail(contactId);
                 String phone = getContactPhone(contactId);
                 
                 TodoContact todoContact = new TodoContact();
-                todoContact.setTodoId(todo.getId());
+                todoContact.setTodoId((int)todo.getId());
                 todoContact.setContactId(contactId);
                 todoContact.setContactName(contactName);
                 todoContact.setContactEmail(email);
                 todoContact.setContactPhone(phone);
                 
-                // Füge Kontakt zur Liste im Todo hinzu
-                if (todo.getContacts() == null) {
-                    todo.setContacts(new ArrayList<>());
+                // Add contact to todo's contact list
+                if (todo.getTodoContacts() == null) {
+                    todo.setTodoContacts(new ArrayList<>());
                 }
-                todo.getContacts().add(todoContact);
+                todo.getTodoContacts().add(todoContact);
                 
                 new Thread(() -> {
                     todoRepository.insertTodoContact(todoContact);
                     runOnUiThread(() -> {
-                        contactAdapter.setContacts(todo.getContacts());
-                        Toast.makeText(this, "Kontakt hinzugefügt", Toast.LENGTH_SHORT).show();
+                        contactAdapter.setContacts(todo.getTodoContacts());
+                        Toast.makeText(this, "Contact added", Toast.LENGTH_SHORT).show();
                     });
                 }).start();
                 
@@ -409,7 +401,7 @@ public class TodoDetailActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
             runOnUiThread(() -> {
-                Toast.makeText(this, "Fehler beim Hinzufügen des Kontakts", Toast.LENGTH_SHORT).show();
+                Toast.makeText(this, "Error adding contact", Toast.LENGTH_SHORT).show();
             });
         }
     }
@@ -417,9 +409,9 @@ public class TodoDetailActivity extends AppCompatActivity {
     private void deleteContact(TodoContact contact) {
         new Thread(() -> {
             todoRepository.deleteTodoContact(contact);
-            todo.getContacts().remove(contact);
+            todo.getTodoContacts().remove(contact);
             runOnUiThread(() -> {
-                contactAdapter.setContacts(todo.getContacts());
+                contactAdapter.setContacts(todo.getTodoContacts());
                 Toast.makeText(this, "Kontakt entfernt", Toast.LENGTH_SHORT).show();
             });
         }).start();
@@ -467,17 +459,17 @@ public class TodoDetailActivity extends AppCompatActivity {
         if (todo == null || todo.getId() == 0) return;
 
         new Thread(() -> {
-            // Lade lokale Kontakte
-            List<TodoContact> localContacts = todoRepository.getContactsForTodo(todo.getId());
+            // Load local contacts
+            List<TodoContact> localContacts = todoRepository.getContactsForTodo((int)todo.getId());
             
-            // Hole Server-Kontakt-IDs
-            List<String> serverContactIds = todo.getContactIds();
+            // Get server contact IDs
+            List<String> serverContactIds = todo.getContacts();
             
-            // Wenn Server-Kontakte vorhanden sind, aber keine lokalen
+            // If server contacts exist but no local contacts
             if ((serverContactIds != null && !serverContactIds.isEmpty()) && 
                 (localContacts == null || localContacts.isEmpty())) {
                 
-                // Erstelle lokale Kontakte aus Server-IDs
+                // Create local contacts from server IDs
                 localContacts = new ArrayList<>();
                 for (String contactId : serverContactIds) {
                     ContentResolver contentResolver = getContentResolver();
@@ -493,13 +485,13 @@ public class TodoDetailActivity extends AppCompatActivity {
                                 cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
                         
                         TodoContact todoContact = new TodoContact();
-                        todoContact.setTodoId(todo.getId());
+                        todoContact.setTodoId((int)todo.getId());
                         todoContact.setContactId(contactId);
                         todoContact.setContactName(contactName);
                         todoContact.setContactEmail(getContactEmail(contactId));
                         todoContact.setContactPhone(getContactPhone(contactId));
                         
-                        // Speichere den Kontakt in der lokalen Datenbank
+                        // Save contact in local database
                         todoRepository.insertTodoContact(todoContact);
                         localContacts.add(todoContact);
                         
@@ -508,10 +500,10 @@ public class TodoDetailActivity extends AppCompatActivity {
                 }
             }
 
-            // Setze die Kontakte im Todo und aktualisiere die UI
+            // Set contacts in todo and update UI
             final List<TodoContact> finalContacts = localContacts;
             if (finalContacts != null) {
-                todo.setContacts(finalContacts);
+                todo.setTodoContacts(finalContacts);
                 runOnUiThread(() -> {
                     contactAdapter.setContacts(finalContacts);
                 });
@@ -564,7 +556,7 @@ public class TodoDetailActivity extends AppCompatActivity {
             // Speichere Todo und Kontakte
             todoRepository.updateTodo(todo, () -> {
                 // Callback nach erfolgreichem Update
-                for (TodoContact contact : todo.getContacts()) {
+                for (TodoContact contact : todo.getTodoContacts()) {
                     if (contact.getId() == 0) { // Neue Kontakte einfügen
                         todoRepository.insertTodoContact(contact);
                     }

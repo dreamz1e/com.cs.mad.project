@@ -2,21 +2,26 @@ package com.cs.mad.project;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.cs.mad.project.adapter.TodoAdapter;
 import com.cs.mad.project.model.Todo;
+import com.cs.mad.project.model.TodoContact;
 import com.cs.mad.project.repository.TodoRepository;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import retrofit2.Response;
@@ -58,13 +63,8 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
         todoAdapter = new TodoAdapter(this, todoRepository, this);
         recyclerView.setAdapter(todoAdapter);
     
-        // Führe die Synchronisation durch
-        synchronizeWithBackend();
-    
-        // Lade Todos nur wenn sie noch nicht geladen wurden
-        if (todoAdapter.getItemCount() == 0) {
-            updateTodoList();
-        }
+        // Check web availability and sync
+        checkWebAvailabilityAndSync();
     
         // FAB Setup
         FloatingActionButton fabAddTodo = findViewById(R.id.fabAddTodo);
@@ -74,27 +74,66 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
         });
     }
 
+    private void checkWebAvailabilityAndSync() {
+        new Thread(() -> {
+            boolean isWebAvailable = todoRepository.checkWebAvailability();
+            
+            runOnUiThread(() -> {
+                if (!isWebAvailable) {
+                    showWebUnavailableWarning();
+                } else {
+                    synchronizeWithBackend();
+                }
+            });
+        }).start();
+    }
+
+    private void showWebUnavailableWarning() {
+        new AlertDialog.Builder(this)
+            .setTitle("Offline Mode")
+            .setMessage("The server (10.0.2.2:8080) is not reachable. The app will operate in offline mode using local storage only.")
+            .setPositiveButton("OK", (dialog, which) -> {
+                // Load local todos only
+                updateTodoList();
+            })
+            .setCancelable(false)
+            .show();
+    }
+
     private void synchronizeWithBackend() {
         new Thread(() -> {
+            List<Todo> localTodos = todoRepository.getAllTodos();
+            
             try {
-                // Hole Todos vom Backend
-                Response<List<Todo>> response = todoRepository.getApiService().readAllTodos().execute();
-                if (response.isSuccessful() && response.body() != null) {
-                    List<Todo> remoteTodos = response.body();
-                    
-                    // Lösche alle lokalen Todos
-                    todoRepository.deleteAllTodosLocally();
-                    
-                    // Speichere die Remote-Todos lokal
-                    todoRepository.insertTodosLocally(remoteTodos);
-                    
-                    // Aktualisiere die UI
-                    runOnUiThread(() -> updateTodoList());
+                if (localTodos.isEmpty()) {
+                    Response<List<Todo>> response = todoRepository.getApiService().readAllTodos().execute();
+                    if (response.isSuccessful() && response.body() != null) {
+                        List<Todo> remoteTodos = response.body();
+                        todoRepository.insertTodosLocally(remoteTodos);
+                        runOnUiThread(this::updateTodoList);
+                    }
+                } else {
+                    Response<Boolean> deleteResponse = todoRepository.getApiService().deleteAllTodos().execute();
+                    if (deleteResponse.isSuccessful()) {
+                        for (Todo localTodo : localTodos) {
+                            Todo serverTodo = todoRepository.createServerTodo(localTodo);
+                            Response<Todo> createResponse = todoRepository.getApiService().createTodo(serverTodo).execute();
+                            if (!createResponse.isSuccessful()) {
+                                throw new IOException("Failed to create todo on server: " + createResponse.code());
+                            }
+                        }
+                        // After successful upload, refresh the local list
+                        runOnUiThread(this::updateTodoList);
+                    }
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(MainActivity.this, 
-                    "Synchronisation fehlgeschlagen", Toast.LENGTH_SHORT).show());
+            } catch (IOException e) {
+                Log.e("MainActivity", "Synchronization error: " + e.getMessage(), e);
+                runOnUiThread(() -> {
+                    Toast.makeText(MainActivity.this, 
+                        "Error during synchronization: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    // Even if sync fails, try to show local todos
+                    updateTodoList();
+                });
             }
         }).start();
     }

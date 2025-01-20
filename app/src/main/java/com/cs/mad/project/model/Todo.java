@@ -4,107 +4,95 @@ import androidx.room.Entity;
 import androidx.room.Ignore;
 import androidx.room.PrimaryKey;
 
+import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-public class Todo {
-
+public class Todo implements Serializable {
     @PrimaryKey(autoGenerate = true)
-    private int id;
-
+    private long id;
     private String name;
     private String description;
+    private long expiry;
     private boolean done;
     private boolean favourite;
+    private List<String> contacts;
+    private Location location;
 
     @Ignore
-    private List<TodoContact> todoContacts = new ArrayList<>();
+    private List<TodoContact> todoContacts;
 
-    // Diese Liste wird für die Server-Kommunikation verwendet
-    @Ignore
-    private List<String> contacts = new ArrayList<>();
-
-    private long expiry;
-
-    // Standardkonstruktor
+    // Default constructor for Room
     public Todo() {
+        contacts = new ArrayList<>();
+        todoContacts = new ArrayList<>();
     }
 
-    // Getters und Setters für alle Felder
-
-    // ID
-    public int getId() {
-        return id;
-    }
-
-    // Setze ID (optional, je nach Bedarf)
-    public void setId(int id) {
-        this.id = id;
-    }
-
-    // Name
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
+    // Constructor with parameters
+    @Ignore
+    public Todo(String name, String description) {
+        this();
         this.name = name;
-    }
-
-    // Beschreibung
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
         this.description = description;
     }
 
-    // Erledigt
-    public boolean isDone() {
-        return done;
-    }
+    // Standard getters and setters
+    public long getId() { return id; }
+    public void setId(long id) { this.id = id; }
+    public String getName() { return name; }
+    public void setName(String name) { this.name = name; }
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    public long getExpiry() { return expiry; }
+    public void setExpiry(long expiry) { this.expiry = expiry; }
+    public boolean isDone() { return done; }
+    public void setDone(boolean done) { this.done = done; }
+    public boolean isFavourite() { return favourite; }
+    public void setFavourite(boolean favourite) { this.favourite = favourite; }
+    public List<String> getContacts() { return contacts; }
+    public void setContacts(List<String> contacts) { this.contacts = contacts; }
+    public Location getLocation() { return location; }
+    public void setLocation(Location location) { this.location = location; }
 
-    public void setDone(boolean done) {
-        this.done = done;
-    }
-
-    // Favorit
-    public boolean isFavourite() {
-        return favourite;
-    }
-
-    public void setFavourite(boolean favourite) {
-        this.favourite = favourite;
-    }
-
-    public long getExpiry() {
-        return expiry;
-    }
-
-    public void setExpiry(long expiry) {
-        this.expiry = expiry;
-    }
-
-    // Getter und Setter für todoContacts (für lokale Verwendung)
+    // Local-only methods for TodoContact handling
     @Ignore
-    public List<TodoContact> getContacts() {
-        return todoContacts;
-    }
-
+    public List<TodoContact> getTodoContacts() { return todoContacts; }
     @Ignore
-    public void setContacts(List<TodoContact> contacts) {
-        this.todoContacts = contacts;
+    public void setTodoContacts(List<TodoContact> todoContacts) { this.todoContacts = todoContacts; }
+
+    // Inner classes for Location
+    public static class Location implements Serializable {
+        private String name;
+        private LatLng latlng;
+
+        public Location() {}
+        
+        public Location(String name, LatLng latlng) {
+            this.name = name;
+            this.latlng = latlng;
+        }
+
+        public String getName() { return name; }
+        public void setName(String name) { this.name = name; }
+        public LatLng getLatlng() { return latlng; }
+        public void setLatlng(LatLng latlng) { this.latlng = latlng; }
     }
 
-    // Getter und Setter für contacts (für Server-Kommunikation)
-    public List<String> getContactIds() {
-        return contacts;
-    }
+    public static class LatLng implements Serializable {
+        private double lat;
+        private double lng;
 
-    public void setContactIds(List<String> contactIds) {
-        this.contacts = contactIds;
-    }
+        public LatLng() {}
 
+        public LatLng(double lat, double lng) {
+            this.lat = lat;
+            this.lng = lng;
+        }
+
+        public double getLat() { return lat; }
+        public void setLat(double lat) { this.lat = lat; }
+        public double getLng() { return lng; }
+        public void setLng(double lng) { this.lng = lng; }
+    }
 }

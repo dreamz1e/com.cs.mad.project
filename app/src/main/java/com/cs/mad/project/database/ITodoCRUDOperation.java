@@ -20,11 +20,11 @@ public interface ITodoCRUDOperation {
 
     @WorkerThread
     @Query("SELECT * FROM Todo WHERE id = :id")
-    Todo getTodoById(int id);
+    Todo getTodoById(long id);
 
     @WorkerThread
     @Insert
-    void insertTodo(Todo todo);
+    long insertTodo(Todo todo);
 
     @WorkerThread
     @Insert
@@ -44,7 +44,7 @@ public interface ITodoCRUDOperation {
 
     @WorkerThread
     @Query("SELECT * FROM TodoContact WHERE todoId = :todoId")
-    List<TodoContact> getContactsForTodo(int todoId);
+    List<TodoContact> getContactsForTodo(long todoId);
     
     @WorkerThread
     @Insert

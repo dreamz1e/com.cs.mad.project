@@ -1,19 +1,29 @@
 package com.cs.mad.project.remote;
 
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.OkHttpClient;
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;
 
 public class RetrofitClient {
-    private static RetrofitClient instance = null;
-    private ITodoAPIService apiService;
+    private static final String BASE_URL = "http://10.0.2.2:8080/";
+
+    private static RetrofitClient instance;
+    private Retrofit retrofit;
 
     private RetrofitClient() {
-        Retrofit retrofit = new Retrofit.Builder()
-                .baseUrl("http://10.0.2.2:8080") // Ersetze durch die URL deiner Webanwendung
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
+        OkHttpClient client = new OkHttpClient.Builder()
+            .connectTimeout(10, TimeUnit.SECONDS)  // Increased timeout
+            .readTimeout(10, TimeUnit.SECONDS)     // Increased timeout
+            .retryOnConnectionFailure(true)        // Enable retry
+            .build();
 
-        apiService = retrofit.create(ITodoAPIService.class);
+        retrofit = new Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build();
     }
 
     public static synchronized RetrofitClient getInstance() {
@@ -23,6 +33,6 @@ public class RetrofitClient {
     }
 
     public ITodoAPIService getApiService() {
-        return apiService;
+        return retrofit.create(ITodoAPIService.class);
     }
 }

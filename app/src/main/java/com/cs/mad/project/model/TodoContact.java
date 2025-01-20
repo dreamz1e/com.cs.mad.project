@@ -17,7 +17,7 @@ public class TodoContact {
     @PrimaryKey(autoGenerate = true)
     private long id;
     
-    private int todoId;
+    private long todoId;
     private String contactId;
     private String contactName;
     private String contactEmail;
@@ -28,7 +28,7 @@ public class TodoContact {
         return id;
     }
     
-    public int getTodoId() {
+    public long getTodoId() {
         return todoId;
     }
     
@@ -53,7 +53,7 @@ public class TodoContact {
         this.id = id;
     }
     
-    public void setTodoId(int todoId) {
+    public void setTodoId(long todoId) {
         this.todoId = todoId;
     }
     
