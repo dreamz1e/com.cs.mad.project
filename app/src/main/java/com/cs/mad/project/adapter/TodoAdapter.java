@@ -1,4 +1,4 @@
-package org.dieschnittstelle.mobile.android.skeleton.adapter;
+package com.cs.mad.project.adapter;
 
 import android.content.Context;
 import android.graphics.Color;
@@ -13,9 +13,9 @@ import android.widget.ToggleButton;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.dieschnittstelle.mobile.android.skeleton.R;
-import org.dieschnittstelle.mobile.android.skeleton.model.Todo;
-import org.dieschnittstelle.mobile.android.skeleton.repository.TodoRepository;
+import com.cs.mad.project.R;
+import com.cs.mad.project.model.Todo;
+import com.cs.mad.project.repository.TodoRepository;
 
 import java.time.Instant;
 import java.time.LocalDate;

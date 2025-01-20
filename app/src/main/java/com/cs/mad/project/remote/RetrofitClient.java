@@ -1,4 +1,4 @@
-package org.dieschnittstelle.mobile.android.skeleton.remote;
+package com.cs.mad.project.remote;
 
 import retrofit2.Retrofit;
 import retrofit2.converter.gson.GsonConverterFactory;

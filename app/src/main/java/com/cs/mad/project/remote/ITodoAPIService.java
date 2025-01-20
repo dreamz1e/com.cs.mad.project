@@ -1,7 +1,7 @@
-package org.dieschnittstelle.mobile.android.skeleton.remote;
+package com.cs.mad.project.remote;
 
-import org.dieschnittstelle.mobile.android.skeleton.model.Todo;
-import org.dieschnittstelle.mobile.android.skeleton.model.User;
+import com.cs.mad.project.model.Todo;
+import com.cs.mad.project.model.User;
 
 import java.util.List;
 

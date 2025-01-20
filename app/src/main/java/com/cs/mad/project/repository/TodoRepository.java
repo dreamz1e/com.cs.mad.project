@@ -1,17 +1,17 @@
-package org.dieschnittstelle.mobile.android.skeleton.repository;
+package com.cs.mad.project.repository;
 
 import android.content.Context;
 import android.os.Looper;
 import android.util.Log;
 import android.os.Handler;
 
-import org.dieschnittstelle.mobile.android.skeleton.DatabaseClient;
-import org.dieschnittstelle.mobile.android.skeleton.model.Todo;
-import org.dieschnittstelle.mobile.android.skeleton.model.TodoContact;
-import org.dieschnittstelle.mobile.android.skeleton.database.ITodoCRUDOperation;
-import org.dieschnittstelle.mobile.android.skeleton.remote.RetrofitClient;
-import org.dieschnittstelle.mobile.android.skeleton.remote.ITodoAPIService;
-import org.dieschnittstelle.mobile.android.skeleton.util.MADAsyncTask;
+import com.cs.mad.project.DatabaseClient;
+import com.cs.mad.project.model.Todo;
+import com.cs.mad.project.model.TodoContact;
+import com.cs.mad.project.database.ITodoCRUDOperation;
+import com.cs.mad.project.remote.RetrofitClient;
+import com.cs.mad.project.remote.ITodoAPIService;
+import com.cs.mad.project.util.MADAsyncTask;
 
 import java.io.IOException;
 import java.util.List;

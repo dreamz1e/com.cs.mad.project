@@ -1,4 +1,4 @@
-package org.dieschnittstelle.mobile.android.skeleton.adapter;
+package com.cs.mad.project.adapter;
 
 import android.view.LayoutInflater;
 import android.view.View;
@@ -9,8 +9,8 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.dieschnittstelle.mobile.android.skeleton.R;
-import org.dieschnittstelle.mobile.android.skeleton.model.TodoContact;
+import com.cs.mad.project.R;
+import com.cs.mad.project.model.TodoContact;
 
 import java.util.ArrayList;
 import java.util.List;

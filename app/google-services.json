@@ -10,7 +10,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:970546450942:android:ee3f26e91f7de0cb3870af",
         "android_client_info": {
-          "package_name": "org.dieschnittstelle.mobile.android.skeleton"
+          "package_name": "com.cs.mad.project"
         }
       },
       "oauth_client": [

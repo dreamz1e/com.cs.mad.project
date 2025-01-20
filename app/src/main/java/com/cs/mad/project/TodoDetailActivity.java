@@ -1,4 +1,4 @@
-package org.dieschnittstelle.mobile.android.skeleton;
+package com.cs.mad.project;
 
 import android.annotation.SuppressLint;
 import android.app.AlertDialog;
@@ -23,10 +23,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.dieschnittstelle.mobile.android.skeleton.model.Todo;
-import org.dieschnittstelle.mobile.android.skeleton.model.TodoContact;
-import org.dieschnittstelle.mobile.android.skeleton.repository.TodoRepository;
-import org.dieschnittstelle.mobile.android.skeleton.adapter.TodoContactAdapter;
+import com.cs.mad.project.model.Todo;
+import com.cs.mad.project.model.TodoContact;
+import com.cs.mad.project.repository.TodoRepository;
+import com.cs.mad.project.adapter.TodoContactAdapter;
 
 import java.io.IOException;
 import java.text.SimpleDateFormat;

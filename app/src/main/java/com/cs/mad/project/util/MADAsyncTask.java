@@ -1,4 +1,4 @@
-package org.dieschnittstelle.mobile.android.skeleton.util;
+package com.cs.mad.project.util;
 
 import android.util.Log;
 

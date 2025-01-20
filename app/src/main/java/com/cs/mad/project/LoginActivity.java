@@ -1,4 +1,4 @@
-package org.dieschnittstelle.mobile.android.skeleton;
+package com.cs.mad.project;
 
 import android.app.ProgressDialog;
 import android.content.Intent;
@@ -15,10 +15,10 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import org.dieschnittstelle.mobile.android.skeleton.model.User;
-import org.dieschnittstelle.mobile.android.skeleton.remote.RetrofitClient;
-import org.dieschnittstelle.mobile.android.skeleton.remote.ITodoAPIService;
-import org.dieschnittstelle.mobile.android.skeleton.util.MADAsyncTask;
+import com.cs.mad.project.model.User;
+import com.cs.mad.project.remote.RetrofitClient;
+import com.cs.mad.project.remote.ITodoAPIService;
+import com.cs.mad.project.util.MADAsyncTask;
 
 import retrofit2.Call;
 import retrofit2.Response;

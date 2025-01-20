@@ -1,29 +1,24 @@
-package org.dieschnittstelle.mobile.android.skeleton;
+package com.cs.mad.project;
 
 import android.content.Intent;
 import android.os.Bundle;
-
 import android.view.Menu;
 import android.view.MenuItem;
-
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
-
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import org.dieschnittstelle.mobile.android.skeleton.adapter.TodoAdapter;
-import org.dieschnittstelle.mobile.android.skeleton.model.Todo;
-import org.dieschnittstelle.mobile.android.skeleton.repository.TodoRepository;
-
+import com.cs.mad.project.adapter.TodoAdapter;
+import com.cs.mad.project.model.Todo;
+import com.cs.mad.project.repository.TodoRepository;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import java.util.Collections;
 import java.util.List;
-
 import retrofit2.Response;
 
 public class MainActivity extends AppCompatActivity implements TodoAdapter.OnItemClickListener {

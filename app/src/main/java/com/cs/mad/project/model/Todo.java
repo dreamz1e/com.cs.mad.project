@@ -1,4 +1,4 @@
-package org.dieschnittstelle.mobile.android.skeleton.model;
+package com.cs.mad.project.model;
 
 import androidx.room.Entity;
 import androidx.room.Ignore;

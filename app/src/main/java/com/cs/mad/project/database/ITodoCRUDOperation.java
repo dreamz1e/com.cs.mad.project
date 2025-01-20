@@ -1,4 +1,4 @@
-package org.dieschnittstelle.mobile.android.skeleton.database;
+package com.cs.mad.project.database;
 
 import androidx.annotation.WorkerThread;
 import androidx.room.Dao;
@@ -7,8 +7,8 @@ import androidx.room.Insert;
 import androidx.room.Query;
 import androidx.room.Update;
 
-import org.dieschnittstelle.mobile.android.skeleton.model.Todo;
-import org.dieschnittstelle.mobile.android.skeleton.model.TodoContact;
+import com.cs.mad.project.model.Todo;
+import com.cs.mad.project.model.TodoContact;
 
 import java.util.List;
 

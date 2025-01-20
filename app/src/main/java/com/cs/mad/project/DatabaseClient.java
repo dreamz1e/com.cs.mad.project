@@ -1,10 +1,8 @@
-package org.dieschnittstelle.mobile.android.skeleton;
+package com.cs.mad.project;
 
 import android.content.Context;
-
 import androidx.room.Room;
-
-import org.dieschnittstelle.mobile.android.skeleton.database.AppDatabase;
+import com.cs.mad.project.database.AppDatabase;
 
 public class DatabaseClient {
     private Context context;
