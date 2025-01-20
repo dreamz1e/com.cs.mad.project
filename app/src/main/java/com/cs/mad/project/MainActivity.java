@@ -102,50 +102,54 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
 
     private void synchronizeWithBackend() {
         new Thread(() -> {
-            List<Todo> localTodos = todoRepository.getAllTodos();
-            
             try {
+                List<Todo> localTodos = todoRepository.getAllTodos();
+                boolean syncSuccess = false;
+                
                 if (localTodos.isEmpty()) {
-                    Response<List<Todo>> response = todoRepository.getApiService().readAllTodos().execute();
-                    if (response.isSuccessful() && response.body() != null) {
-                        List<Todo> remoteTodos = response.body();
-                        todoRepository.insertTodosLocally(remoteTodos);
-                        runOnUiThread(this::updateTodoList);
-                    }
+                    syncSuccess = syncFromServer();
                 } else {
-                    Response<Boolean> deleteResponse = todoRepository.getApiService().deleteAllTodos().execute();
-                    if (deleteResponse.isSuccessful()) {
-                        for (Todo localTodo : localTodos) {
-                            Todo serverTodo = todoRepository.createServerTodo(localTodo);
-                            Response<Todo> createResponse = todoRepository.getApiService().createTodo(serverTodo).execute();
-                            if (!createResponse.isSuccessful()) {
-                                throw new IOException("Failed to create todo on server: " + createResponse.code());
-                            }
-                        }
-                        // After successful upload, refresh the local list
-                        runOnUiThread(this::updateTodoList);
-                    }
+                    syncSuccess = syncToServer(localTodos);
+                }
+                
+                if (syncSuccess) {
+                    runOnUiThread(this::updateTodoList);
                 }
             } catch (IOException e) {
                 Log.e("MainActivity", "Synchronization error: " + e.getMessage(), e);
                 runOnUiThread(() -> {
                     Toast.makeText(MainActivity.this, 
-                        "Error during synchronization: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                    // Even if sync fails, try to show local todos
+                        "Error during synchronization: " + e.getMessage(), 
+                        Toast.LENGTH_LONG).show();
                     updateTodoList();
                 });
             }
         }).start();
     }
 
-    private void loadTodosFromLocalDatabase() {
-        new Thread(() -> {
-            List<Todo> todoList = todoRepository.getAllTodos();
-            // Sortiere die Liste entsprechend dem aktuellen Sortiermodus
-            sortTodoList(todoList);
+    private boolean syncFromServer() throws IOException {
+        Response<List<Todo>> response = todoRepository.getApiService().readAllTodos().execute();
+        if (response.isSuccessful() && response.body() != null) {
+            todoRepository.insertTodosLocally(response.body());
+            return true;
+        }
+        return false;
+    }
 
-            runOnUiThread(() -> todoAdapter.setTodos(todoList));
-        }).start();
+    private boolean syncToServer(List<Todo> localTodos) throws IOException {
+        Response<Boolean> deleteResponse = todoRepository.getApiService().deleteAllTodos().execute();
+        if (!deleteResponse.isSuccessful()) return false;
+        
+        for (Todo localTodo : localTodos) {
+            Todo serverTodo = todoRepository.createServerTodo(localTodo);
+            Response<Todo> createResponse = todoRepository.getApiService()
+                .createTodo(serverTodo).execute();
+            if (!createResponse.isSuccessful()) {
+                throw new IOException("Failed to create todo on server: " + 
+                    createResponse.code());
+            }
+        }
+        return true;
     }
 
     private void updateTodoList() {
@@ -166,33 +170,27 @@ public class MainActivity extends AppCompatActivity implements TodoAdapter.OnIte
     }
 
     private void sortTodoList(List<Todo> todoList) {
-        if (currentSortMode == SORT_BY_DATE_IMPORTANCE) {
-            Collections.sort(todoList, (t1, t2) -> {
-                // Zuerst nach Fälligkeit sortieren
-                if (t1.getExpiry() != t2.getExpiry()) {
-                    return Long.compare(t1.getExpiry(), t2.getExpiry());
+        Collections.sort(todoList, (t1, t2) -> {
+            // First, sort by completion status
+            if (t1.isDone() != t2.isDone()) {
+                return Boolean.compare(t1.isDone(), t2.isDone());
+            }
+            
+            // If both are completed or both are not completed, use the current sort mode
+            int result;
+            if (currentSortMode == SORT_BY_DATE_IMPORTANCE) {
+                result = Long.compare(t1.getExpiry(), t2.getExpiry());
+                if (result == 0) {
+                    result = Boolean.compare(t2.isFavourite(), t1.isFavourite());
                 }
-                // Bei gleicher Fälligkeit nach Wichtigkeit
-                if (t1.isFavourite() != t2.isFavourite()) {
-                    return t1.isFavourite() ? -1 : 1;
+            } else {
+                result = Boolean.compare(t2.isFavourite(), t1.isFavourite());
+                if (result == 0) {
+                    result = Long.compare(t1.getExpiry(), t2.getExpiry());
                 }
-                // Bei gleicher Wichtigkeit nach Namen
-                return t1.getName().compareTo(t2.getName());
-            });
-        } else {
-            Collections.sort(todoList, (t1, t2) -> {
-                // Zuerst nach Wichtigkeit sortieren
-                if (t1.isFavourite() != t2.isFavourite()) {
-                    return t1.isFavourite() ? -1 : 1;
-                }
-                // Bei gleicher Wichtigkeit nach Fälligkeit
-                if (t1.getExpiry() != t2.getExpiry()) {
-                    return Long.compare(t1.getExpiry(), t2.getExpiry());
-                }
-                // Bei gleicher Fälligkeit nach Namen
-                return t1.getName().compareTo(t2.getName());
-            });
-        }
+            }
+            return result != 0 ? result : t1.getName().compareTo(t2.getName());
+        });
     }
 
 
