@@ -23,13 +23,13 @@ public class Todo implements Serializable {
     @Ignore
     private List<TodoContact> todoContacts;
 
-    // Default constructor for Room
+    // Standard Constructor Room
     public Todo() {
         contacts = new ArrayList<>();
         todoContacts = new ArrayList<>();
     }
 
-    // Constructor with parameters
+    // Constructor mit Parametern
     @Ignore
     public Todo(String name, String description) {
         this();
@@ -55,13 +55,14 @@ public class Todo implements Serializable {
     public Location getLocation() { return location; }
     public void setLocation(Location location) { this.location = location; }
 
-    // Local-only methods for TodoContact handling
+    // Local-only methoden für TodoContact handling
     @Ignore
     public List<TodoContact> getTodoContacts() { return todoContacts; }
     @Ignore
     public void setTodoContacts(List<TodoContact> todoContacts) { this.todoContacts = todoContacts; }
 
-    // Inner classes for Location
+    // Location classes
+    // Wird voraussichtlich nicht benötigt
     public static class Location implements Serializable {
         private String name;
         private LatLng latlng;

@@ -500,7 +500,7 @@ public class TodoDetailActivity extends AppCompatActivity {
                 }
             }
 
-            // Set contacts in todo and update UI
+            // Kontakte setzen und UI updaten
             final List<TodoContact> finalContacts = localContacts;
             if (finalContacts != null) {
                 todo.setTodoContacts(finalContacts);

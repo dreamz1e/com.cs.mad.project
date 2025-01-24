@@ -56,7 +56,7 @@ public class TodoRepository {
 
             @Override
             protected void onPostExecute(Void aVoid) {
-                // Optional: Update UI or perform other actions after synchronization
+                // Optional: Update UI für post-sync aktionen
             }
         }.execute();
     }
@@ -64,7 +64,7 @@ public class TodoRepository {
     public Todo createServerTodo(Todo localTodo) {
         Todo serverTodo = new Todo();
         
-        // Only copy the fields that the server expects
+        // Nur die vom server erwarteten felder
         serverTodo.setId(localTodo.getId());
         serverTodo.setName(localTodo.getName());
         serverTodo.setDescription(localTodo.getDescription());
@@ -73,7 +73,7 @@ public class TodoRepository {
         serverTodo.setExpiry(localTodo.getExpiry());
         serverTodo.setLocation(localTodo.getLocation());
         
-        // Handle contacts properly
+        // Seperates handling für Kontakte
         List<String> contactIds = new ArrayList<>();
         if (localTodo.getTodoContacts() != null) {
             for (TodoContact contact : localTodo.getTodoContacts()) {
@@ -83,8 +83,6 @@ public class TodoRepository {
             }
         }
         serverTodo.setContacts(contactIds);
-        
-        // Ensure todoContacts is null for server communication
         serverTodo.setTodoContacts(null);
         
         return serverTodo;
@@ -256,10 +254,10 @@ public class TodoRepository {
     public void deleteTodo(Todo todo) {
         new Thread(() -> {
             try {
-                // First delete locally
+                // Erst lokal löschen
                 todoCRUDOperation.deleteTodo(todo);
                 
-                // Try to sync with server only if web is available
+                // Mit webserver syncen wenn möglich
                 if (isWebAvailable) {
                     try {
                         Response<Boolean> response = apiService.deleteTodo((int)todo.getId()).execute();
@@ -311,12 +309,12 @@ public class TodoRepository {
     // Methode zum Abrufen aller Todos
     public List<Todo> getAllTodos() {
         List<Todo> todos = todoCRUDOperation.getAllTodos();
-        // Load contacts for each todo
+        // kotakte für jedes todo laden
         for (Todo todo : todos) {
             List<TodoContact> contacts = todoCRUDOperation.getContactsForTodo(todo.getId());
             todo.setTodoContacts(contacts);
             
-            // Update the contacts list with contact IDs
+            // Kontaktliste mit IDs updaten
             List<String> contactIds = new ArrayList<>();
             if (contacts != null) {
                 for (TodoContact contact : contacts) {
@@ -328,13 +326,6 @@ public class TodoRepository {
             todo.setContacts(contactIds);
         }
         return todos;
-    }
-
-    // Methode zum Überprüfen der Verfügbarkeit der Webanwendung
-    public boolean isWebApplicationAvailable() {
-        // Implementiere eine Methode, um die Erreichbarkeit der Webanwendung zu prüfen
-        // Zum Beispiel einen Ping oder eine Testanfrage senden
-        return true; // Platzhalter
     }
 
     public ITodoAPIService getApiService() {
@@ -361,39 +352,10 @@ public class TodoRepository {
         return todoCRUDOperation.getContactsForTodo(todoId);
     }
 
-    public void synchronizeWithBackend() {
-        new Thread(() -> {
-            List<Todo> localTodos = getAllTodos();
-            try {
-                if (localTodos.isEmpty()) {
-                    // Fetch from server if no local todos exist
-                    Response<List<Todo>> response = apiService.readAllTodos().execute();
-                    if (response.isSuccessful() && response.body() != null) {
-                        insertTodosLocally(response.body());
-                    }
-                } else {
-                    // Send local todos to server
-                    Response<Boolean> deleteResponse = apiService.deleteAllTodos().execute();
-                    if (deleteResponse.isSuccessful()) {
-                        for (Todo localTodo : localTodos) {
-                            Todo serverTodo = createServerTodo(localTodo);
-                            Response<Todo> createResponse = apiService.createTodo(serverTodo).execute();
-                            if (!createResponse.isSuccessful()) {
-                                throw new IOException("Failed to create todo on server: " + createResponse.code());
-                            }
-                        }
-                    }
-                }
-            } catch (IOException e) {
-                Log.e(TAG, "Synchronization error: " + e.getMessage(), e);
-            }
-        }).start();
-    }
-
     public void createTodo(Todo todo, Runnable onSuccess) {
         new Thread(() -> {
             try {
-                // First create locally
+                // Todo lokal erstellen
                 long localId = todoCRUDOperation.insertTodo(todo);
                 todo.setId(localId);  // Set the generated ID
                 
