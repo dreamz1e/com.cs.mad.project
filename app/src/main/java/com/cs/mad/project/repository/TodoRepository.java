@@ -256,12 +256,24 @@ public class TodoRepository {
     public void deleteTodo(Todo todo) {
         new Thread(() -> {
             try {
-                Response<Boolean> response = apiService.deleteTodo((int)todo.getId()).execute();
-                if (response.isSuccessful() && Boolean.TRUE.equals(response.body())) {
-                    todoCRUDOperation.deleteTodo(todo);
+                // First delete locally
+                todoCRUDOperation.deleteTodo(todo);
+                
+                // Try to sync with server only if web is available
+                if (isWebAvailable) {
+                    try {
+                        Response<Boolean> response = apiService.deleteTodo((int)todo.getId()).execute();
+                        if (!response.isSuccessful()) {
+                            Log.e(TAG, "Failed to delete todo on server: " + response.code());
+                            isWebAvailable = false;
+                        }
+                    } catch (IOException e) {
+                        Log.e(TAG, "Server not available, operating in offline mode");
+                        isWebAvailable = false;
+                    }
                 }
-            } catch (IOException e) {
-                Log.e(TAG, "Fehler beim Löschen des Todos", e);
+            } catch (Exception e) {
+                Log.e(TAG, "Error deleting todo locally", e);
             }
         }).start();
     }

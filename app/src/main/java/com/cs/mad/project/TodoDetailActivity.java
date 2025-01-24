@@ -568,6 +568,7 @@ public class TodoDetailActivity extends AppCompatActivity {
     @Override
     public void onBackPressed() {
         // Speichere Änderungen bevor die Activity beendet wird
+        super.onBackPressed();
         saveTodo();
     }
 }
