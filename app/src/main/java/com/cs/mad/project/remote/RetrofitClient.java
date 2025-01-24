@@ -14,9 +14,9 @@ public class RetrofitClient {
 
     private RetrofitClient() {
         OkHttpClient client = new OkHttpClient.Builder()
-            .connectTimeout(10, TimeUnit.SECONDS)  // Increased timeout
-            .readTimeout(10, TimeUnit.SECONDS)     // Increased timeout
-            .retryOnConnectionFailure(true)        // Enable retry
+            .connectTimeout(1, TimeUnit.SECONDS)
+            .readTimeout(1, TimeUnit.SECONDS).writeTimeout(1, TimeUnit.SECONDS)
+            .retryOnConnectionFailure(false)
             .build();
 
         retrofit = new Retrofit.Builder()
