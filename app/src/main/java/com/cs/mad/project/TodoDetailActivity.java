@@ -481,7 +481,7 @@ public class TodoDetailActivity extends AppCompatActivity {
                             null);
 
                     if (cursor != null && cursor.moveToFirst()) {
-                        String contactName = cursor.getString(
+                        @SuppressLint("Range") String contactName = cursor.getString(
                                 cursor.getColumnIndex(ContactsContract.Contacts.DISPLAY_NAME));
                         
                         TodoContact todoContact = new TodoContact();
